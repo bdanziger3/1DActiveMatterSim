@@ -3,3 +3,5 @@ plots/*
 data1.txt
 
 *.png
+
+other_plots/
