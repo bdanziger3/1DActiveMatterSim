@@ -26,8 +26,8 @@ function test_save_load()
     simdata = runsim(simparams)
 
     # save data and reload it to a new `SimulationData` struct
-    datafile_path_1 = "save_load_sequentialtxt_test"
-    datafile_path_2 = "save_load_sequentialtxt_test_copy"
+    datafile_path_1 = "txt_data_files/save_load_sequentialtxt_test"
+    datafile_path_2 = "txt_data_files/save_load_sequentialtxt_test_copy"
     savesim(simdata, datafile_path_1, sequentialtxt, true)
     loadedsim = loadsim("$(datafile_path_1)_simdata.txt", sequentialtxt)
 
