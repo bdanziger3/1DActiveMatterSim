@@ -4,4 +4,12 @@ data1.txt
 
 *.png
 
+# *.txt
+
+28Feb/dataout1/
+28Feb/df_dataout*
+
+28Feb/txt_data_files/
+28Feb/plot_outputs/
+
 other_plots/
