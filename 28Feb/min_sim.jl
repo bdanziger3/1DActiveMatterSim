@@ -1,8 +1,10 @@
+import Base.==
 using Random
 using PyPlot
 using PyCall
 using DelimitedFiles
 using DataStructures
+using DataFrames
 
 
 # Minumum approach to the same code I had before
@@ -22,11 +24,63 @@ struct SimulationParameters
     # randomstarts::Bool
     # randomspins::Bool
 
-    function # Inner constructor with default values
+    function # Inner constructor with some default values
         SimulationParameters(numparticles, totaltime, dt, v0, temp, boxwidth=1, starttime=0)
         return new(numparticles, totaltime, dt, v0, temp, boxwidth, starttime)
     end
+    function # Inner constructor for null object with all default values
+        SimulationParameters(paramsdict::Dict)
+        return new(paramsdict["numparticles"], paramsdict["totaltime"], paramsdict["dt"], paramsdict["v0"], paramsdict["temp"], paramsdict["boxwidth"], paramsdict["starttime"])
+    end
+    function # Inner constructor for dictionary input
+        SimulationParameters()
+        return new(0, 0, 0, 0, 0, 0, 0)
+    end
 end
+
+function asdict(simparams::SimulationParameters)
+    paramsdict::Dict = Dict("numparticles" => simparams.numparticles, "totaltime" => simparams.totaltime, "dt" => simparams.dt, "v0" => simparams.v0, "temp" => simparams.temp, "boxwidth" => simparams.boxwidth, "starttime" => simparams.starttime)
+    return paramsdict
+end
+
+function csv_serialize(simparams::SimulationParameters)
+    return "$(simparams.numparticles),$(simparams.totaltime),$(simparams.dt),$(simparams.v0),$(simparams.temp),$(simparams.boxwidth),$(simparams.starttime)"
+end
+
+function json_serialize(simparams::SimulationParameters)::String
+    # paramsdict::Dict = Dict("numparticles" => simparams.numparticles, "totaltime" => simparams.totaltime, "dt" => simparams.dt, "v0" => simparams.v0, "temp" => simparams.temp, "boxwidth" => simparams.boxwidth, "starttime" => simparams.starttime)
+    # json_str = JSON.json(asdict(simparams))
+    # return json_str
+    return JSON.json(asdict(simparams), 2)
+end
+
+function json_deserialize_simparams(json_str::String)::SimulationParameters
+    paramsdict = JSON.parse(json_str)
+    simparams = SimulationParameters(paramsdict)
+    return simparams
+end
+
+function gettimes(simparams::SimulationParameters)::Array{Real}
+    endtime = simparams.starttime + simparams.totaltime
+    return collect(simparams.starttime:simparams.dt:endtime)
+end
+
+function getntimes(simparams::SimulationParameters)::Int64
+    return Int64(floor(simparams.totaltime / simparams.dt) + 1)
+end
+
+function asarray(simparams::SimulationParameters)::Array{Any}
+    ar = [simparams.numparticles, simparams.totaltime, simparams.dt, simparams.v0, simparams.temp, simparams.boxwidth, simparams.starttime]
+    return ar
+end
+
+function assertparams(simparams::SimulationParameters)::Bool
+    @assert getntimes(simparams) == size(gettimes(simparams))[1] "error in construction of times in `gettimes()`."
+    @assert dt <= totaltime "timestep `dt` must be less than `totaltime`."
+    
+    return true
+end
+
 
 struct SimulationData
     simparams::SimulationParameters
@@ -34,7 +88,106 @@ struct SimulationData
     positions::Matrix{Real}
     wrappedpositions::Matrix{Real}
     spins::Matrix{Int8}
+
 end
+
+function assertdim(simdata::SimulationData)
+    # assert simparams is consistent
+    assertparams(simdata.simparams)
+    # assert times are correct
+    ntimes::Int64 = getntimes(simdata.simparams)
+    nparticles::Int64 = simparams.numparticles
+    possize = size(simdata.positions)
+    wrappedpossize = size(simdata.wrappedpositions)
+    spinssize = size(simdata.spins)
+    # assert all data arrays have the correct number of times
+    @assert ntimes == possize[1] "Positions data has incorrect number of times. Should have $(ntimes), found $(possize[1])"
+    @assert ntimes == wrappedpossize[1] "Wrapped positions data has incorrect number of times. Should have $(ntimes), found $(wrappedpossize[1])"
+    @assert ntimes == spinssize[1] "Spins data has incorrect number of times. Should have $(ntimes), found $(spinssize[1])"
+    
+    # assert all data arrays have the correct number of particles
+    @assert nparticles == possize[2] "Positions data has incorrect number of particles. Should have $(nparticles), found $(possize[2])"
+    @assert nparticles == wrappedpossize[2] "Wrapped positions data has incorrect number of particles. Should have $(nparticles), found $(wrappedpossize[2])"
+    @assert nparticles == spinssize[2] "Spins data has incorrect number of particles. Should have $(nparticles), found $(spinssize[2])"
+end
+
+function json_serialize(simdata::SimulationData)
+    datadict::Dict = Dict(Pair{String, Dict}("simparams", asdict(simdata.simparams)), Pair{String, Array{Real}}("times", simdata.times), Pair{String, Matrix{Real}}("positions", simdata.positions), Pair{String, Matrix{Real}}("wrappedpositions", simdata.wrappedpositions), Pair{String, Matrix{Int8}}("spins", simdata.spins))
+    # println(datadict)
+    json_str = JSON.json(datadict, 2)
+    # println(json_str)
+    # return json_str
+end
+
+function Base.:(==)(simdata1::SimulationData, simdata2::SimulationData)::Bool
+    if simdata1.simparams != simdata2.simparams
+        return false
+    end
+
+    ## TODO finish implementing checking data
+
+    return true
+end
+
+# function json_deserialize_simdata(json_str::String)
+#     simdata_1 = JSON.parse(json_str)
+#     println(simdata_1)
+#     simparams = SimulationParameters(simdata_1["simparams"])
+#     # println(simparams)
+#     simdata = SimulationData(simparams, simdata_1["times"], simdata_1["positions"], simdata_1["wrappedpositions"], simdata_1["spins"])
+#     # println(simdata)
+#     return simdata
+# end
+
+# function is
+
+function simdata2df(simdata::SimulationData)
+    # builds a data frame from the simulation data
+
+    df = DataFrame(particlelabel=Int[], time=Real[], position=Real[], wrappedposition=Real[], spin=Int[])
+
+    # rows consist of data for 1 particle at 1 time
+    times = gettimes(simdata.simparams)
+    for t_i in 1:length(simdata.times)
+        for i in 1:simparams.numparticles
+            push!(df, (i, times[t_i], simdata.positions[t_i, i], simdata.wrappedpositions[t_i, i], simdata.spins[t_i, i]))
+        end
+    end
+
+    return df
+end
+
+function df2simdata(df::DataFrame, simparams::SimulationParameters=SimulationParameters())
+    sorteddf = sort(df, [:time, :particlelabel])
+
+    times::Array{Real} = unique(sorteddf.time)
+    ntimes = length(times)
+    nparticles = maximum(sorteddf.particlelabel)
+    positions::Matrix{Real} = zeros(ntimes, nparticles)
+    wrappedpositions::Matrix{Real} = zeros(ntimes, nparticles)
+    spins::Matrix{Int8} = ones(ntimes, nparticles)
+
+    for time_i in 1:length(times)
+        timestamp = times[time_i]
+        subdf = filter(:time => t -> t == timestamp, sorteddf)
+
+        if size(subdf, 1) != nparticles
+            println("Data for $(size(subdf, 1)) particles found at time $(timestamp). Expected $(nparticles)")
+        end
+        
+        positions[time_i, :] = subdf.position
+        wrappedpositions[time_i, :] = subdf.wrappedposition
+        spins[time_i, :] = subdf.spin
+    end
+
+    simdata = SimulationData(simparams, times, positions, wrappedpositions, spins)
+
+    return simdata
+
+end
+
+
+
 
 
 function randlinflip(dt::Real, temp::Real)
@@ -44,6 +197,20 @@ end
 function wrap(positions::Array{Real}, boxwidth::Real)
     cwwrap = x -> x - (boxwidth * round(x / boxwidth))
     return cwwrap.(positions)
+end
+
+function runstep(currpositions::Array{Real}, currwrappedpositions::Array{Real}, currspins::Array{Int8}, simparams::SimulationParameters)
+    # update positions in place
+    currpositions .+= (currspins .* simparams.v0 * simparams.dt)
+
+    # handle wrapping of positions (periodic boundary conditions)
+    currwrappedpositions = wrap(currpositions, simparams.boxwidth)
+
+    # update spins in place
+    flips::Array{Bool} = (x -> randlinflip(simparams.dt, simparams.temp)).(currspins)
+    currspins[flips] .*= -1
+
+    # return currpositions, currwrappedpositions, currspins
 end
 
 
@@ -57,30 +224,21 @@ function runsim(simparams::SimulationParameters)
     times = collect(simparams.starttime:simparams.dt:simparams.totaltime)
     nsteps = length(times) - 1
 
-    mx::Array{Real} = zeros(nsteps+1, simparams.numparticles)
-    mwrappedx::Array{Real} = zeros(nsteps+1, simparams.numparticles)
-    ms::Array{Real} = zeros(nsteps+1, simparams.numparticles)
+    mx::Matrix{Real} = zeros(nsteps+1, simparams.numparticles)
+    mwrappedx::Matrix{Real} = zeros(nsteps+1, simparams.numparticles)
+    ms::Matrix{Int8} = zeros(nsteps+1, simparams.numparticles)
 
     mx[1,:] = copy(currpositions)
-    mwrappedx[1,:] = copy(currpositions)
+    mwrappedx[1,:] = copy(currwrappedpositions)
     ms[1,:] = copy(currspins)
 
     # run simulation `nsims` times
     for i in 1:nsteps
 
-        # update positions in place
-        currpositions .+= (currspins .* simparams.v0 * simparams.dt)
-
-        # handle wrapping of positions (periodic boundary conditions)
-        currwrappedpositions = wrap(currpositions, simparams.boxwidth)
-
-        # update spins in place
-        flips::Array{Bool} = (x -> randlinflip(simparams.dt, simparams.temp)).(currspins)
-        currspins[flips] .*= -1
-
+        runstep(currpositions, currwrappedpositions, currspins, simparams)
 
         mx[i+1,:] = copy(currpositions)
-        mwrappedx[i+1,:] = copy(currpositions)
+        mwrappedx[i+1,:] = copy(currwrappedpositions)
         ms[i+1,:] = copy(currspins) 
     end
 
@@ -117,37 +275,6 @@ function particledensity(simdata::SimulationData, nbins::Real=100)
     return xgrid, densities
 
 end
-
-
-    
-
-    # matplotlib.pyplot.close()
-
-
-# setup simulation params and run the simulation
-N::Int = 1000
-boxwidth::Real = 1
-T::Real = 5
-v0::Real = 1
-dt::Real = 0.01
-totaltime::Real = 30
-simparams = SimulationParameters(N, totaltime, dt, v0, T, boxwidth)
-nsims = 15
-
-simdata = runsim(simparams)
-
-
-
-
-
-# println(simdata.wrappedpositions)
-
-dataoutfile = "./dataout1"
-writedlm("./multi_sim_$(N)-$(T)-$(v0)_x.txt", simdata.positions, ",")
-writedlm("./multi_sim_$(N)-$(T)-$(v0)_xwrap.txt", simdata.wrappedpositions, ",")
-writedlm("./multi_sim_$(N)-$(T)-$(v0)_S.txt", simdata.spins, ",")
-writedlm("./multi_sim_$(N)-$(T)-$(v0)_t.txt", simdata.times, ",")
-
 
 
 function set_visual(xlabel = "", ylabel = "",size= (3,2)) # size = (3,2) if figure fills half a page width
@@ -228,25 +355,14 @@ function densityplot(simdata::SimulationData, filepath::String = "", title::Stri
     ax.invert_yaxis()
     plt.colorbar(label="Density")
 
-    # if filepath == ""
-    #     filepath = makedefaultfilename()
-    # end
 
-    plt.savefig(filepath, bbox_inches = "tight",pad_inches=0.01)
+    if filepath != ""
+        plt.savefig(filepath, bbox_inches = "tight",pad_inches=0.01)
 
-    println("plot saved in current directory as $(filepath)")
+        println("plot saved in current directory as $(filepath)")
+    end
 end 
 
-
-# handle plotting
-plottitle = "Density of $(N) Particles \n T = $(T), dt = $(dt)"
-# simpleplotvertxy(simdata, "./$(T)-$(nsims).pdf", plottitle)
-densityplot(simdata, "./$(T)-$(nsims)_d.pdf", plottitle)
-densityplot(simdata, "./$(T)-$(nsims)_d-uw.pdf", "$(plottitle)-unwrapped", false)
-
-
-# println(length(simdata.positions[:,1]))
-# println(length(simdata.times))
 
 # function periodicplotvertxy(simdata::ParticleSimData, filepath::String = "", title::String = "")
 #     boundary_crosses = periodicboundary_paths(simdata)

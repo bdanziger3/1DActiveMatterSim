@@ -9,3 +9,24 @@
 
 
 Simulating Active Solids and searching for order. 
+
+
+
+
+
+
+
+
+# Packages required
+
+- JSON
+
+
+
+Code to install packages:
+
+```julia
+using Pkg
+Pkg.add("JSON")
+
+```

@@ -1,0 +1,100 @@
+using CSV
+
+# include("./min_sim.jl")
+include("./min_sim.jl")
+include("./simdata_files.jl")
+
+
+# println(length(simdata.positions[:,1]))
+# println(length(simdata.times))
+# setup simulation params and run the simulation
+N::Int = 10
+boxwidth::Real = 1
+T::Real = 5
+v0::Real = 1
+dt::Real = 0.1
+totaltime::Real = 10
+simparams = SimulationParameters(N, totaltime, dt, v0, T, boxwidth)
+nsims = 15
+
+# println(simparams == simparams2)
+# println(simparams)
+# j1 = json_serialize(simparams)
+# j2 = json_deserialize_simparams(j1)
+
+# println(simparams)
+# println(j1)
+# println(j2)
+
+# simdata = runsim(simparams)
+
+# simdata2 = deepcopy(simdata)
+
+# println(simdata == simdata2)
+# println(simdata)
+# j3 = json_serialize(simdata)
+# s4 = json_deserialize_simdata(j3)
+# println(s4)
+# simdataDf = simdata2df(simdata)
+
+
+
+# simdata2 = df2simdata(simdataDf, simparams)
+# simdata3 = df2simdata(simdataDf)
+
+# println(simdata2)
+# println(simdata3)
+
+
+# println(simdata.df)
+# println(simdataDf)
+
+# dfoutfile = "./df_dataout.csv"
+# dataoutfile = "./dataout1"
+
+# CSV.write(dfoutfile, simdataDf)
+
+
+
+# df2 = DataFrame(CSV.File(dfoutfile))
+
+# df2[1,1] = 400
+
+
+# for i in 1:size(simdataDf)[2]
+#     if simdataDf[!,i] != df2[!,i]
+#         println("Not equal in column $(i)")
+#         break
+#     end
+#     if i == size(simdataDf)[2]
+#         println("Equal")
+#     end
+# end
+
+# println(simdataDf == df2)
+# println(simdataDf === df2)
+# println(isequal(simdataDf, df2))
+
+# # handle plotting
+# wrappedplotfile = "$(dataoutfile)/$(T)-$(nsims)_d.pdf"
+# unwrappedplotfile = "$(dataoutfile)/$(T)-$(nsims)_d-uw.pdf"
+# plottitle = "Density of $(N) Particles \n T = $(T), dt = $(dt)"
+# # simpleplotvertxy(simdata, "./$(T)-$(nsims).pdf", plottitle)
+# densityplot(simdata, wrappedplotfile, plottitle)
+# densityplot(simdata, unwrappedplotfile, "$(plottitle)-unwrapped", false)
+
+
+# # # println(simdata.wrappedpositions)
+# simdatafile_prefix = "$(dataoutfile)/multi_sim_$(N)-$(T)-$(v0)"
+# writedlm("$(simdatafile_prefix)_x.txt", simdata.positions, ",")
+# writedlm("$(simdatafile_prefix)_xwrap.txt", simdata.wrappedpositions, ",")
+# writedlm("$(simdatafile_prefix)_S.txt", simdata.spins, ",")
+# writedlm("$(simdatafile_prefix)_t.txt", simdata.times, ",")
+
+
+
+# savesim(simdata, "testfunc2", sequentialtxt, true)
+# datafile_path = "testfunc2_simdata.txt"
+# loadedsim = loadsim(datafile_path, sequentialtxt)
+
+# savesim(loadedsim, "testfunc3", sequentialtxt, true)
