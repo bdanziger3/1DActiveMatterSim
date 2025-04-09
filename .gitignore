@@ -6,10 +6,10 @@ data1.txt
 
 # *.txt
 
-28Feb/dataout1/
-28Feb/df_dataout*
+work/dataout1/
+work/df_dataout*
 
-28Feb/txt_data_files/
-28Feb/plot_outputs/
+work/txt_data_files/
+work/plot_outputs/
 
 other_plots/
