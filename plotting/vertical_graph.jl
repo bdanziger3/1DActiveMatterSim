@@ -49,17 +49,18 @@ function simpleplotvertxy(xdata::Array{Real}, ydata::Array{Real}, filepath::Stri
     println("plot saved in current directory as $(filepath)")
 end 
 
-function simpleplotvertxy(simdata::SimData, filepath::String = "")
-    fig, ax = set_visual(L"Space ($x$)", L"Time ($s$)")
+function simpleplotvertxy(simdata::ParticleSimData, filepath::String = "", title::string = "")
+    fig, ax = set_visual(L"Space ($x$)", L"Time ($s$)", (6,10))
 
     
     ax.tick_params(top=true, labeltop=true, bottom=false, labelbottom=false)
-    plt.title(L"Space ($x$)")   
+    plt.title(title)   
 
     for path::ParticlePath in simdata.particlepaths
         plt.plot(path.positions, path.times)
     end
 
+    plt.xlim(-simdata.boxwidth / 2, simdata.boxwidth / 2)
     ax.invert_yaxis()
 
     if filepath == ""
@@ -70,3 +71,50 @@ function simpleplotvertxy(simdata::SimData, filepath::String = "")
 
     println("plot saved in current directory as $(filepath)")
 end 
+
+
+function periodicplotvertxy(simdata::ParticleSimData, filepath::String = "", title::String = "")
+    boundary_crosses = periodicboundary_paths(simdata)
+    println(boundary_crosses)
+
+    fig, ax = set_visual(L"Space ($x$)", L"Time ($s$)", (6, 10))
+
+    
+    ax.tick_params(top=true, labeltop=true, bottom=false, labelbottom=false)
+    
+    plt.title(title)   
+
+    for i in 1:length(simdata.particlepaths)
+        path = simdata.particlepaths[i]
+        plt.plot(path.positions, path.times)
+    end
+        
+    for i in keys(boundary_crosses)
+        path = simdata.particlepaths[i]
+        # Access the color of the last added line
+        line_color = ax.get_lines()[i].get_color()
+
+        # Add line with the same color to the left and right
+        for j in 1:boundary_crosses[i][1]
+            plot(path.positions .+ (j * simdata.boxwidth), path.times, color=line_color)
+        end
+        for j in 1:boundary_crosses[i][2]
+            plot(path.positions .- (j * simdata.boxwidth), path.times, color=line_color)
+        end
+    end
+        
+    plt.xlim(-simdata.boxwidth / 2, simdata.boxwidth / 2)
+    ax.invert_yaxis()
+
+    if filepath == ""
+        filepath = makedefaultfilename()
+    end
+
+    plt.savefig(filepath, bbox_inches = "tight",pad_inches=0.01)
+
+    println("plot saved in current directory as $(filepath)")
+end 
+
+
+
+

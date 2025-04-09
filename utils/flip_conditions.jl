@@ -4,14 +4,14 @@ using Random
 """
 Linear approximation of random flipping.
 
-Probability in a timestep dt is dt * T where T is some parameter related to the reciprocal of some characteristic time.
+Probability in a timestep dt is dt * T where T is some Temperature parameter related to the reciprocal of some characteristic time.
 
 Valid if dt * T << 1
 
 Returns a function that can be used with a parameter `dt` to simulate random flipping.
 """
-function randomlinear(T::Real)
-    return (dt -> (rand() < (dt * T)))
+function randomlinear(T::Real)::Function
+    return (dt::Real -> (rand() < (dt * T)))
 end
 
 """
@@ -28,17 +28,17 @@ These two values are related by:
 pdf function is `pdf(t) = \\lambda * exp(- \\lambda * t)`
 cdf function is `pdf(t) = 1 - exp(- \\lambda * t)`
 """
-function randomexp(lambda::Real)
+function randomexp(lambda::Real)::Function
     # p0 = (1 - exp(-1 * lambda * dt))
-    return (dt -> rand() < (1 - exp(-1 * lambda * dt)))
+    return (dt::Real -> rand() < (1 - exp(-1 * lambda * dt)))
 end
 
-function calclambda(p0::Real, T::Real)
+function calclambda(p0::Real, T::Real)::Real
     lambda = - log(1 - p0) / T
     return lambda
 end
 
-function randomexp(p0::Real, T::Real)
+function randomexp(p0::Real, T::Real)::Function
     lambda = calclambda(p0, T)
     return randomexp(lambda)
 end

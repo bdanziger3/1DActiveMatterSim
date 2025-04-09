@@ -31,7 +31,7 @@ function runsim(sim::SimulationParameters, nsims::Int64)
     
     timesteps = 0:sim.dt:sim.totaltime
 
-    simdata = SimData(ParticlePath[], sim.totaltime, sim.dt)
+    simdata = ParticleSimData(ParticlePath[], sim.totaltime, sim.dt, 0)
 
     # run simulation `nsims` times
     for i in 1:nsims
