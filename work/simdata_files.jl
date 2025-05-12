@@ -19,8 +19,7 @@ function loadsim(inputfilename::String, filetype::DataFileType)::SimulationData
        
         # read next line to get number of position data points
         simparaminfo_str = readline(file)
-        simparaminfo = parse.(Float64, split(simparaminfo_str, ","))
-        simparams = SimulationParameters(Int64(simparaminfo[1]), simparaminfo[2], simparaminfo[3], simparaminfo[4], simparaminfo[5], simparaminfo[6], simparaminfo[7], simparaminfo[8])
+        simparams = SimulationParameters(simparaminfo_str)
         ntimes::Int64 = getntimes(simparams)
             
         # now read through the data in the order: [positions, wrappedpositions, spins]
@@ -84,7 +83,7 @@ function savesim(simdata::SimulationData, outputfilename::String, filetype::Data
         filestring = "$(outputfilename)_simdata.txt"
         open(filestring, clearfile ? "w" : "a") do io
             println(io, "Simulation Parameters")
-            println(io, join(asarray(simdata.simparams), ","))
+            println(io, csv_serialize(simdata.simparams))
             println(io, "Positions")
             writedlm(io, simdata.positions, ",")
             println(io, "Wrapped Positions")

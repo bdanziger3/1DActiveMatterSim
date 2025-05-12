@@ -13,6 +13,7 @@ struct SimulationParameters
     fliprate::Float64
     boxwidth::Float64
     interaction::InteractionType
+    interactionfliprate::Float64    # probability of a flip for each timestep if in interaction
     starttime::Float64
     # startinglocations::Array{Real}
     # randomstarts::Bool
@@ -20,26 +21,50 @@ struct SimulationParameters
 
 
     function # Inner constructor with some default values
-        SimulationParameters(numparticles, totaltime, dt, v0, fliprate, boxwidth=1,  interaction=none, starttime=0)
-        return new(numparticles, totaltime, dt, v0, fliprate, boxwidth, interaction, starttime)
+        SimulationParameters(numparticles, totaltime, dt, v0, fliprate, boxwidth=1,  interaction=none, interactionfliprate=0, starttime=0)
+        return new(numparticles, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate, starttime)
     end
     function # Inner constructor for null object with all default values
         SimulationParameters(paramsdict::Dict)
-        return new(paramsdict["numparticles"], paramsdict["totaltime"], paramsdict["dt"], paramsdict["v0"], paramsdict["fliprate"], paramsdict["boxwidth"], paramsdict["interaction"], paramsdict["starttime"])
+        return new(paramsdict["numparticles"], paramsdict["totaltime"], paramsdict["dt"], paramsdict["v0"], paramsdict["fliprate"], paramsdict["boxwidth"], paramsdict["interaction"], paramsdict["interactionfliprate"], paramsdict["starttime"])
     end
     function # Inner constructor for dictionary input
         SimulationParameters()
-        return new(0, 0, 0, 0, 0, 0, 0)
+        return new(0, 0, 0, 0, 0)
     end
 end
 
+
+function SimulationParameters(simparaminfo::Array)
+    return SimulationParameters(simparaminfo...)
+end
+
+function SimulationParameters(paramsstr::String)
+    # Construct SimulationParameters struct from a comma-separated string
+    basic_simparam = SimulationParameters()
+    fieldtypes = typeof.(getfield.(Ref(basic_simparam), fieldnames(SimulationParameters)))
+    data_list = Array{Any, 1}(undef, length(fieldtypes))
+    str_list = split(paramsstr, ",")
+    for i = 1:length(fieldtypes)
+        if fieldtypes[i] isa Type{<:Enum}
+            data_list[i] = eval(Symbol(str_list[i]))
+        else
+            data_list[i] = parse(fieldtypes[i], str_list[i])
+        end
+    end
+
+    return SimulationParameters(data_list)
+end
+
+# const simparam_fields = ["numparticles", "totaltime", "dt", "v0", "fliprate", "boxwidth", "interaction", "interactionfliprate", "starttime"]
+# const simparam_filedtypes = [Int64, Float64, Float64, Float64, Float64, Float64, InteractionType, Float64, Float64]
 function asdict(simparams::SimulationParameters)
-    paramsdict::Dict = Dict("numparticles" => simparams.numparticles, "totaltime" => simparams.totaltime, "dt" => simparams.dt, "v0" => simparams.v0, "fliprate" => simparams.fliprate, "boxwidth" => simparams.boxwidth, "interaction" => simparams.interaction, "starttime" => simparams.starttime)
+    paramsdict::Dict = Dict(fieldnames(SimulationParameters) .=> getfield.(Ref(simparams), fieldnames(SimulationParameters)))
     return paramsdict
 end
 
 function csv_serialize(simparams::SimulationParameters)
-    return "$(simparams.numparticles),$(simparams.totaltime),$(simparams.dt),$(simparams.v0),$(simparams.fliprate),$(simparams.boxwidth),$(simparams.interaction),$(simparams.starttime)"
+    return join(asarray(simparams), ",")
 end
 
 function json_serialize(simparams::SimulationParameters)::String
@@ -65,7 +90,7 @@ function getntimes(simparams::SimulationParameters)::Int64
 end
 
 function asarray(simparams::SimulationParameters)::Array{Any}
-    ar = [simparams.numparticles, simparams.totaltime, simparams.dt, simparams.v0, simparams.fliprate, simparams.boxwidth, simparams.interaction, simparams.starttime]
+    ar = [simparams.numparticles, simparams.totaltime, simparams.dt, simparams.v0, simparams.fliprate, simparams.boxwidth, simparams.interaction, simparams.interactionfliprate, simparams.starttime]
     return ar
 end
 

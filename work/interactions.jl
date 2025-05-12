@@ -12,7 +12,6 @@ function alignOn2(simparams::SimulationParameters, currwrappedpositions::Matrix{
     nparticles =  length(currwrappedpositions)
     canflip::Array{Bool} = Array{Bool}(undef, 1, nparticles)
     canflip .= false
-    flipprob = 0.1
 
     # naive approach
     # check all particles to find nearest neighbors
@@ -142,7 +141,7 @@ function alignOn2(simparams::SimulationParameters, currwrappedpositions::Matrix{
     end
 
     # now for all particles that can flip, check if they do flip
-    flips = (x -> rand() < flipprob && x).(canflip)
+    flips = (x -> rand() < simparams.interactionfliprate && x).(canflip)
 
     return flips
 end 

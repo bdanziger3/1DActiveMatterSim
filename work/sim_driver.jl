@@ -16,27 +16,19 @@ v0::Real = .5 * boxwidth/ctime
 dt::Real = 0.001
 totaltime::Real = 100
 interaction = alignsimple
-simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, interaction)
+interactionfliprate = 0.5
+simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate)
 nsims = 15
 
-# println(simparams == simparams2)
-# println(simparams)
-# j1 = json_serialize(simparams)
-# j2 = json_deserialize_simparams(j1)
-
-# println(simparams)
-# println(j1)
-# println(j2)
-
-simdata = runsim(simparams)
+# simdata = runsim(simparams)
 
 # savesim(simdata, "1basic_N$(N)_t$(floor(totaltime / dt))_align_T$(fliprate)_sim", sequentialtxt)
-savesim(simdata, "basic_N$(N)_t$(floor(totaltime / dt))_interaction_$(interaction)_T$(fliprate)_sim", sequentialtxt, true)
-# simdata = loadsim("txt_data_files/basic_N$(N)_t$(Int64(floor(totaltime / dt)))_noint_sim_simdata.txt", sequentialtxt)
+# savesim(simdata, "testnewserial", sequentialtxt, true)
+# simdata2 = loadsim("testnewserial_simdata.txt", sequentialtxt)
 
 # simdata2 = deepcopy(simdata)
 
-# println(simdata == simdata2)
+# println(simdata.simparams == simdata2.simparams)
 # println(simdata)
 # j3 = json_serialize(simdata)
 # s4 = json_deserialize_simdata(j3)
