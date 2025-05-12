@@ -1,6 +1,8 @@
 using CSV
 
-include("./min_sim.jl")
+include("./basic_sim.jl")
+include("./plot_lib.jl")
+include("./simdata_files.jl")
 
 
 N::Int = 1000
@@ -13,27 +15,17 @@ nsims::Int = 15
 
 simparams = SimulationParameters(N, totaltime, dt, v0, T, boxwidth)
 
-dataoutfile = "./"
-
+dataoutfile = "./plot_outputs/Apr25/"
 # # println(simdata.wrappedpositions)
-simdatafile_prefix = "$(dataoutfile)/multi_sim_$(N)-$(T)-$(v0)"
-# df = inou.File("$(simdatafile_prefix)_x.txt")
+df = "basic_N10_t1000.0_align_T1_sim_simdata.txt"
 
-mx::Matrix{Real} = readdlm("$(simdatafile_prefix)_x.txt", ',', Float64)
-mwrappedx::Matrix{Real} = readdlm("$(simdatafile_prefix)_xwrap.txt", ',', Float64)
-ms::Matrix{Real} = readdlm("$(simdatafile_prefix)_S.txt", ',', Int8)
-times::Matrix{Real} = readdlm("$(simdatafile_prefix)_t.txt", ',', Float64)
-
-
-
-simdata = SimulationData(simparams, times, mx, mwrappedx, ms)
-
+simdata = loadsim(df, sequentialtxt)
 
 
 # handle plotting
-wrappedplotfile = "$(dataoutfile)/loaded-$(T)-$(nsims)_d.pdf"
-unwrappedplotfile = "$(dataoutfile)/loaded-$(T)-$(nsims)_d-uw.pdf"
-plottitle = "Density of $(N) Particles \n T = $(T), dt = $(dt)"
+wrappedplotfile = "$(dataoutfile)/-int-N-$(simdata.simparams.numparticles)-t$(simdata.simparams.totaltime).pdf"
+unwrappedplotfile = "$(dataoutfile)/-int-N-$(simdata.simparams.numparticles)-t$(simdata.simparams.totaltime)-uw.pdf"
+plottitle = "Density of $(N) Particles with Alignment Interactions\n T = $(T), dt = $(dt)"
 # simpleplotvertxy(simdata, "./$(T)-$(nsims).pdf", plottitle)
 densityplot(simdata, wrappedplotfile, plottitle)
 densityplot(simdata, unwrappedplotfile, "$(plottitle)-unwrapped", false)

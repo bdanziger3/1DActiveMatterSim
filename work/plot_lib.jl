@@ -1,104 +1,17 @@
-using Random
-using PyPlot
-using PyCall
-using DelimitedFiles
-using DataStructures
 
-
-# Minumum approach to the same code I had before
-
-"""
-Simulation parameters on which to run particles
-"""
-struct SimulationParametersOld
-    numparticles::Int
-    totaltime::Real
-    dt::Real
-    v0::Real
-    temp::Real
-    boxwidth::Real
-    starttime::Real
-    # startinglocations::Array{Real}
-    # randomstarts::Bool
-    # randomspins::Bool
-
-    function # Inner constructor with default values
-        SimulationParametersOld(numparticles, totaltime, dt, v0, temp, boxwidth=1, starttime=0)
-        return new(numparticles, totaltime, dt, v0, temp, boxwidth, starttime)
-    end
-end
-
-struct SimulationDataOld
-    simparams::SimulationParametersOld
-    times::Array{Real}
-    positions::Matrix{Real}
-    wrappedpositions::Matrix{Real}
-    spins::Matrix{Int8}
-end
-
-
-function randlinflip(dt::Real, temp::Real)
-    return rand() < (dt * temp)
-end
-
-function wrap(positions::Array{Real}, boxwidth::Real)
-    cwwrap = x -> x - (boxwidth * round(x / boxwidth))
-    return cwwrap.(positions)
-end
-
-
-function runsim(simparams::SimulationParametersOld)
-
-    # set initial particle states
-    currpositions::Array{Real} = zeros(1, simparams.numparticles)
-    currwrappedpositions::Array{Real} = zeros(1, simparams.numparticles)
-    currspins::Array{Int8} = fill!(Array{Int8}(undef, 1, simparams.numparticles), 1)
-    
-    times = collect(simparams.starttime:simparams.dt:simparams.totaltime)
-    nsteps = length(times) - 1
-
-    mx::Array{Real} = zeros(nsteps+1, simparams.numparticles)
-    mwrappedx::Array{Real} = zeros(nsteps+1, simparams.numparticles)
-    ms::Array{Real} = zeros(nsteps+1, simparams.numparticles)
-
-    mx[1,:] = copy(currpositions)
-    mwrappedx[1,:] = copy(currpositions)
-    ms[1,:] = copy(currspins)
-
-    # run simulation `nsims` times
-    for i in 1:nsteps
-
-        # update positions in place
-        currpositions .+= (currspins .* simparams.v0 * simparams.dt)
-
-        # handle wrapping of positions (periodic boundary conditions)
-        currwrappedpositions = wrap(currpositions, simparams.boxwidth)
-
-        # update spins in place
-        flips::Array{Bool} = (x -> randlinflip(simparams.dt, simparams.temp)).(currspins)
-        currspins[flips] .*= -1
-
-
-        mx[i+1,:] = copy(currpositions)
-        mwrappedx[i+1,:] = copy(currpositions)
-        ms[i+1,:] = copy(currspins) 
-    end
-
-    simdata = SimulationDataOld(simparams, times, mx, mwrappedx, ms)
-    return simdata
-end
+include("./basic_sim.jl")
 
 
 # get particle densities
-function particledensity(simdata::SimulationDataOld, nbins::Real=100)
+function particledensity(simdata::SimulationData, nbins::Real=100)
     n = simdata.simparams.numparticles
     times = simdata.times
     wrappedx = simdata.wrappedpositions
 
     binwidth = simdata.simparams.boxwidth / nbins
-    xgrid::Array{Real} = collect(-simdata.simparams.boxwidth/2:binwidth:simdata.simparams.boxwidth/2)
+    xgrid::Array{Float64} = collect(-simdata.simparams.boxwidth/2:binwidth:simdata.simparams.boxwidth/2)
 
-    densities::Matrix{Real} = zeros(wrappedx.size[1], length(xgrid))
+    densities::Matrix{Float64} = zeros(wrappedx.size[1], length(xgrid))
 
     bin = (x -> round(x / binwidth) + round(length(xgrid) / 2))
 
@@ -118,6 +31,7 @@ function particledensity(simdata::SimulationDataOld, nbins::Real=100)
 
 end
 
+
 function set_visual(xlabel = "", ylabel = "",size= (3,2)) # size = (3,2) if figure fills half a page width
     plt.clf() # clears old plots
     fig, ax = plt.subplots(figsize = (size[1],size[2])) # creates plot
@@ -131,7 +45,7 @@ function set_visual(xlabel = "", ylabel = "",size= (3,2)) # size = (3,2) if figu
     return fig,ax # returns figure and axis such that it can be manipulated outside of the function
 end
 
-function simpleplotvertxy(simdata::SimulationDataOld, filepath::String = "", title::String = "")
+function simpleplotvertxy(simdata::SimulationData, filepath::String = "", title::String = "")
     fig, ax = set_visual(L"Space ($x$)", L"Time ($s$)", (6,10))
 
     
@@ -156,7 +70,7 @@ end
 
 
 
-function densityplot(simdata::SimulationDataOld, filepath::String = "", title::String = "", wrapped::Bool=true, spacebins::Int=100)
+function densityplot(simdata::SimulationData, filepath::String = "", title::String = "", wrapped::Bool=true, spacebins::Int=100)
     # make particle density plot
 
     wrappedx = simdata.wrappedpositions
@@ -196,9 +110,6 @@ function densityplot(simdata::SimulationDataOld, filepath::String = "", title::S
     ax.invert_yaxis()
     plt.colorbar(label="Density")
 
-    # if filepath == ""
-    #     filepath = makedefaultfilename()
-    # end
 
     if filepath != ""
         plt.savefig(filepath, bbox_inches = "tight",pad_inches=0.01)
@@ -255,7 +166,7 @@ end
 # periodicplotvertxy(simdata, "./plots/spnv$(T)-$(nsims)_per.pdf", plottitle)
 
 # for j in 1:nsims
-#     xarray::Array{Real} = []
+#     xarray::Array{Float64} = []
 
 #     for i in 1:1000
 #         timestep!(p, .01)

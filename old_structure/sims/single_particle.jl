@@ -11,7 +11,7 @@ include("../plotting/vertical_graph.jl")
 """
 Simulation parameters on which to run particles
 """
-struct SimulationParameters
+struct SimulationParametersOldOld
     totaltime::Real
     dt::Real
     particlelist::Array{NonInteractingParticle}

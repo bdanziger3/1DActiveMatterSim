@@ -1,4 +1,5 @@
-include("./min_sim.jl")
+include("./basic_sim.jl")
+# include("./sim_structs.jl")
 
 using JSON
 
@@ -7,7 +8,7 @@ using JSON
 
 dft::DataFileType = seperatefiles
 
-function loadsim(inputfilename::String, filetype::DataFileType)   
+function loadsim(inputfilename::String, filetype::DataFileType)::SimulationData
     if filetype == sequentialtxt
         # read file
         file = open(inputfilename, "r")
@@ -19,7 +20,7 @@ function loadsim(inputfilename::String, filetype::DataFileType)
         # read next line to get number of position data points
         simparaminfo_str = readline(file)
         simparaminfo = parse.(Float64, split(simparaminfo_str, ","))
-        simparams = SimulationParameters(Int64(simparaminfo[1]), simparaminfo[2], simparaminfo[3], simparaminfo[4], simparaminfo[5], simparaminfo[6], simparaminfo[7])
+        simparams = SimulationParameters(Int64(simparaminfo[1]), simparaminfo[2], simparaminfo[3], simparaminfo[4], simparaminfo[5], simparaminfo[6], simparaminfo[7], simparaminfo[8])
         ntimes::Int64 = getntimes(simparams)
             
         # now read through the data in the order: [positions, wrappedpositions, spins]
@@ -28,7 +29,7 @@ function loadsim(inputfilename::String, filetype::DataFileType)
         
         # positions
         # initialize matrix and read in data from file
-        posmatrix::Matrix{Real} = zeros(ntimes, simparams.numparticles)
+        posmatrix::Matrix{Float64} = zeros(ntimes, simparams.numparticles)
         for i in 1:ntimes                    
             dataline = readline(file)
             pos_i_data::Array{Float64} = parse.(Float64, split(dataline, ","))
@@ -40,7 +41,7 @@ function loadsim(inputfilename::String, filetype::DataFileType)
         line = readline(file)
         @assert contains(lowercase(line), "wrapped positions") "Sequentialtxt data file does not have correct `Wrapped Positions` header line. File may be corrupted."
         
-        wrappedposmatrix::Matrix{Real} = zeros(ntimes, simparams.numparticles)
+        wrappedposmatrix::Matrix{Float64} = zeros(ntimes, simparams.numparticles)
         for i in 1:ntimes                    
             dataline = readline(file)
             wrappedpos_i_data::Array{Float64} = parse.(Float64, split(dataline, ","))

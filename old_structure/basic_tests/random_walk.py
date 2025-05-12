@@ -46,7 +46,7 @@ def random_walk_sim_1d(max_steps, runs_per_n):
         res_abs = np.abs(np.array(res))
 
         mean_x[n-1] = np.mean(res)
-        mean_x_sq[n-1] = np.mean(res_abs)
+        mean_x_sq[n-1] = np.mean(res_sq)
 
 
     return mean_x, mean_x_sq
@@ -130,9 +130,9 @@ def random_walk_sim_2d(max_steps, runs_per_n, theta_window=2*np.pi):
 mean_x_1d, mean_x_sq_1d = random_walk_sim_1d(100, 500)
 ns = np.arange(1, len(mean_x_1d) + 1)
 plt.plot(ns, mean_x_1d)
-plt.plot(ns, mean_x_sq_1d / np.sqrt(ns))
+# plt.plot(ns, mean_x_sq_1d / np.sqrt(ns))
 # plt.plot(ns, (1 / np.sqrt(2)) * np.sqrt(ns))
-plt.plot(ns, (4/5) * np.sqrt(ns))
+# plt.plot(ns, (4/5) * np.sqrt(ns))
 # # plt.plot(ns, (ns) * np.sqrt(ns))
 # plt.plot(ns,  (5/6) * np.sqrt(ns))
 plt.plot(ns, mean_x_sq_1d)

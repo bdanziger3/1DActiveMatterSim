@@ -1,20 +1,22 @@
 using CSV
 
-# include("./min_sim.jl")
-include("./min_sim.jl")
+include("./basic_sim.jl")
 include("./simdata_files.jl")
+include("./plot_lib.jl")
 
 
 # println(length(simdata.positions[:,1]))
 # println(length(simdata.times))
 # setup simulation params and run the simulation
-N::Int = 10
+N::Int = 100
 boxwidth::Real = 1
-T::Real = 5
-v0::Real = 1
-dt::Real = 0.1
-totaltime::Real = 10
-simparams = SimulationParameters(N, totaltime, dt, v0, T, boxwidth)
+ctime::Real = 3
+fliprate::Real = 1/ctime
+v0::Real = .5 * boxwidth/ctime
+dt::Real = 0.001
+totaltime::Real = 100
+interaction = alignsimple
+simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, interaction)
 nsims = 15
 
 # println(simparams == simparams2)
@@ -26,7 +28,11 @@ nsims = 15
 # println(j1)
 # println(j2)
 
-# simdata = runsim(simparams)
+simdata = runsim(simparams)
+
+# savesim(simdata, "1basic_N$(N)_t$(floor(totaltime / dt))_align_T$(fliprate)_sim", sequentialtxt)
+savesim(simdata, "basic_N$(N)_t$(floor(totaltime / dt))_interaction_$(interaction)_T$(fliprate)_sim", sequentialtxt, true)
+# simdata = loadsim("txt_data_files/basic_N$(N)_t$(Int64(floor(totaltime / dt)))_noint_sim_simdata.txt", sequentialtxt)
 
 # simdata2 = deepcopy(simdata)
 
@@ -50,7 +56,7 @@ nsims = 15
 # println(simdataDf)
 
 # dfoutfile = "./df_dataout.csv"
-# dataoutfile = "./dataout1"
+# dataoutfile = "./plot_outputs/Apr9"
 
 # CSV.write(dfoutfile, simdataDf)
 
@@ -75,13 +81,15 @@ nsims = 15
 # println(simdataDf === df2)
 # println(isequal(simdataDf, df2))
 
-# # handle plotting
-# wrappedplotfile = "$(dataoutfile)/$(T)-$(nsims)_d.pdf"
-# unwrappedplotfile = "$(dataoutfile)/$(T)-$(nsims)_d-uw.pdf"
-# plottitle = "Density of $(N) Particles \n T = $(T), dt = $(dt)"
+# handle plotting
+# wrappedplotfile = "$(dataoutfile)/$(T)-$(nsims).png"
+# unwrappedplotfile = "$(dataoutfile)/$(T)-$(nsims)-uw.png"
+# plottitle = "Paths of $(N) Particles \n T = $(T), dt = $(dt)"
 # # simpleplotvertxy(simdata, "./$(T)-$(nsims).pdf", plottitle)
-# densityplot(simdata, wrappedplotfile, plottitle)
-# densityplot(simdata, unwrappedplotfile, "$(plottitle)-unwrapped", false)
+# # densityplot(simdata, wrappedplotfile, plottitle)
+# # densityplot(simdata, unwrappedplotfile, "$(plottitle)-unwrapped", false)
+# simpleplotvertxy(simdata, wrappedplotfile, plottitle)
+# simpleplotvertxy(simdata, unwrappedplotfile, "$(plottitle)-unwrapped")
 
 
 # # # println(simdata.wrappedpositions)
