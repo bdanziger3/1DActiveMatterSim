@@ -1,11 +1,16 @@
+import sys,os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mplc
 from matplotlib.animation import FuncAnimation
-from work.simulation.sim_structs import SimulationData, SimulationParameters
-from simdata_files import loadsim, DataFileType
-from utils.print_tools import ProgressBar
 import time
+
+# add src dir to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from simulation.sim_structs import SimulationData, SimulationParameters
+from file_management.simdata_files import loadsim, DataFileType
+from utils.print_tools import ProgressBar
 
 
 SAVE = False
@@ -33,16 +38,16 @@ def simdata_unwrap(sim_data:SimulationData):
 
     pb = ProgressBar(nframes, "Calculating wraps...", "Done")
 
-    nwraps = np.zeros_like(sim_data.wrapped_positions)
+    nwraps = np.zeros_like(sim_data.positions)
 
     # count which 'screen' the particles are on by counting the number of times they wrap around the box edges
     for i in range(1, nframes):
         pb.sparse_progress(i)
         # particle advances one screen for each large "jump" in the positions (in the opposite direction of the jump)
-        dxs = sim_data.wrapped_positions[i] - sim_data.wrapped_positions[i-1]
+        dxs = sim_data.positions[i] - sim_data.positions[i-1]
         nwraps[i, :] = nwraps[i-1, :] + (-np.sign(dxs) * (np.abs(dxs) >= jump_thresh))
 
-    unwrapped_positions = sim_data.wrapped_positions + (nwraps * sim_data._sim_params._box_width)
+    unwrapped_positions = sim_data.positions + (nwraps * sim_data._sim_params._box_width)
 
     return unwrapped_positions
 
@@ -72,22 +77,24 @@ def sim_wrap_buffer(file_str:str, jump_thresh:float = -1, save:bool = False):
 
     pb = ProgressBar(nframes, "Calculating wraps...", "Done")
 
-    nwraps = np.zeros_like(sim_data.wrapped_positions)
+    nwraps = np.zeros_like(sim_data.positions)
 
     # count which 'screen' the particles are on by counting the number of times they wrap around the box edges
     for i in range(1, nframes):
         pb.sparse_progress(i)
         # particle advances one screen for each large "jump" in the positions (in the opposite direction of the jump)
-        dxs = sim_data.wrapped_positions[i] - sim_data.wrapped_positions[i-1]
+        dxs = sim_data.positions[i] - sim_data.positions[i-1]
         nwraps[i, :] = nwraps[i-1, :] + (-np.sign(dxs) * (np.abs(dxs) >= jump_thresh))
 
-    all_calc_pos = sim_data.wrapped_positions + (nwraps * sim_data._sim_params._box_width)
+    all_calc_pos = sim_data.positions + (nwraps * sim_data._sim_params._box_width)
 
     return all_calc_pos
 
 
 
 t0 = time.time()
-sim_wrap_preload(example_align_intearaction_sim2, -1, SHOW, SAVE)
+unwrapped_pos = sim_unwrap_preload(example_align_intearaction_sim2, -1, SHOW, SAVE)
 print(f"total time: {time.time() - t0}")
+
+
 # sim_animate(example_align_intearaction_sim, SHOW, SAVE)

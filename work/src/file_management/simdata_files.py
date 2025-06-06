@@ -1,13 +1,17 @@
+import sys, os
 from enum import Enum
-from work.simulation.sim_structs import SimulationData, SimulationParameters
 import numpy as np
+
+# add src dir to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from simulation.sim_structs import SimulationData, SimulationParameters
 from utils.print_tools import ProgressBar
 
 class DataFileType(Enum):
     SEPERATE_FILES = 1
     SEQUENTIAL_TEXT = 2
     JSON = 3
-    SEQUENTIAL_TEXT_ABS  = 4
 
 def string_list_to_number_list(str_list, seperator=",", out_type=np.float64):
     if type(out_type) == type(np.float64):
@@ -21,7 +25,7 @@ def string_list_to_number_list(str_list, seperator=",", out_type=np.float64):
 
 
 def loadsim(input_fn:str, file_type:DataFileType=DataFileType.SEQUENTIAL_TEXT) -> SimulationData:
-    if file_type == DataFileType.SEQUENTIAL_TEXT or file_type == DataFileType.SEQUENTIAL_TEXT_ABS:
+    if file_type == DataFileType.SEQUENTIAL_TEXT:
         # read file
         fn = open(input_fn, "r")
 
@@ -100,15 +104,12 @@ def save_sim(sim_data:SimulationData, output_fn:str, file_type:DataFileType=Data
         fn.write(",".join([str(x) for x in sim_data._sim_params.as_array()])+"\n")
         fn.write("Positions\n")
         fn.write(",".join([str(x) for x in sim_data.positions])+"\n")
-        fn.write("Wrapped Positions\n")
-        fn.write(",".join([str(x) for x in sim_data.wrapped_positions])+"\n")
         fn.write("Spins\n")
         fn.write(",".join([str(x) for x in sim_data.spins])+"\n")
     elif file_type == DataFileType.SEPERATE_FILES:
         sim_datafile_prefix = output_fn
         fn.write(",".join([str(x) for x in sim_data.spins])+"\n")
         write_dlm(f"{sim_datafile_prefix}_x.txt", sim_data.positions, ",")
-        write_dlm(f"{sim_datafile_prefix}_xwrap.txt", sim_data.wrapped_positions, ",")
         write_dlm(f"{sim_datafile_prefix}_S.txt", sim_data.spins, ",")
         write_dlm(f"{sim_datafile_prefix}_t.txt", sim_data.times, ",")
     
@@ -128,8 +129,6 @@ def save_sim(sim_data:SimulationData, output_fn:str, file_type:DataFileType=Data
 # print("times")
 # print(sim_d.times)
 # print()
-# print("wrapped")
-# print(sim_d.wrapped_positions)
 # print()
 # print("spins")
 # print(sim_d.spins)
