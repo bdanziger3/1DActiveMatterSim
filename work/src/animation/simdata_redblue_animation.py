@@ -23,6 +23,8 @@ save_filepath = "no_interaction.gif"
 example_no_intearaction_sim100 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N100-align-simplelong_simdata.txt"
 example_no_intearaction_sim2 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N2-align-simplelong_simdata.txt"
 example_no_intearaction_sim3 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N3-nointeraction_simdata.txt"
+example_no_intearaction_sim3_int = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N3-alignsimple_simdata.txt"
+example_no_intearaction_sim3_strong_int = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N3-strong-alignsimple_simdata.txt"
 example_no_intearaction_sim = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/basic_N100_t100000.0_interaction_none_T0.3333333333333333_sim_simdata.txt"
 example_align_intearaction_sim = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/basic_N100_t100000.0_interaction_alignsimple_T0.3333333333333333_sim_simdata.txt"
 example_align_intearaction_sim2 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/16-5/16-5-N100-align-simplelong_simdata.txt"
@@ -99,5 +101,5 @@ def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 3
 
 
 
-sim_animate(example_no_intearaction_sim3, SHOW, SAVE)
+sim_animate(example_no_intearaction_sim3_strong_int, SHOW, SAVE)
 # sim_animate(example_align_intearaction_sim, SHOW, SAVE)

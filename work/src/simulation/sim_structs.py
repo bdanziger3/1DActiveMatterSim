@@ -5,7 +5,7 @@ import json
 Simulation parameters on which to run particles
 """
 class SimulationParameters:
-    def __init__(self, num_particles:int, total_time:float, dt:float, v0:float, flip_rate:float, box_width:float=1, interaction:str="none", start_time:float=0):
+    def __init__(self, num_particles:int, total_time:float, dt:float, v0:float, flip_rate:float, box_width:float=1, interaction:str="none", interaction_fliprate:float=np.inf, start_time:float=0):
         self._num_particles:int = int(num_particles)
         self._total_time = total_time
         self._dt = dt
@@ -13,11 +13,11 @@ class SimulationParameters:
         self._flip_rate = flip_rate
         self._box_width = box_width
         self.interaction = interaction
+        self.interaction_fliprate = interaction_fliprate
         self._start_time = start_time
-        # self._starting_positions = starting_positions
-        # self._random_starts = random_starts
-        # self._random_spins = random_spins
-        # self._spin_interaction = spin_interaction
+        self._starting_positions = 0
+        self._random_starts = False
+        self._random_spins = False
 
 
     @classmethod
@@ -47,10 +47,10 @@ class SimulationParameters:
         return int(np.floor(self._total_time / self._dt) + 1)
     
     def as_array(self) -> list:
-        return [self._num_particles, self._total_time, self._dt, self._v0, self._flip_rate, self._box_width, self._start_time]
+        return [self._num_particles, self._total_time, self._dt, self._v0, self._flip_rate, self._box_width, self.interaction, self.interaction_fliprate, self._start_time]
 
     def __repr__(self):
-        return "num_particles: {}\ntotal_time: {}\ndt: {}\nv0: {}\nflip_rate: {}\nbox_width: {}\nstart_time: {}".format(*self.as_array()) 
+        return "num_particles: {}\ntotal_time: {}\ndt: {}\nv0: {}\nflip_rate: {}\nbox_width: {}\ninteraction: {}\ninteraction_fliprate: {}\nstart_time: {}".format(*self.as_array()) 
 
 
 class SimulationData():
