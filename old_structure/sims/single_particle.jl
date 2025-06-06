@@ -58,7 +58,7 @@ function runsim(sim::SimulationParameters, nsims::Int64)
 end
 
 # setup simulation params and run the simulation
-sim = SimulationParameters(1, 0.1, [NonInteractingParticle(0, 1, 1, 3.3)])
+sim = SimulationParametersOld(1, 0.1, [NonInteractingParticle(0, 1, 1, 3.3)])
 nsims = 15
 simdata = runsim(sim, nsims)
 

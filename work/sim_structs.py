@@ -54,9 +54,8 @@ class SimulationParameters:
 
 
 class SimulationData():
-    def __init__(self, sim_params, times, positions, wrapped_positions, spins):
+    def __init__(self, sim_params, times, positions, spins):
         self._sim_params: SimulationParameters = sim_params
         self.times = times
         self.positions = positions
-        self.wrapped_positions = wrapped_positions
         self.spins = spins

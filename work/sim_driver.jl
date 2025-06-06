@@ -8,19 +8,21 @@ include("./plot_lib.jl")
 # println(length(simdata.positions[:,1]))
 # println(length(simdata.times))
 # setup simulation params and run the simulation
-N::Int = 100
+N::Int = 2
 boxwidth::Real = 1
 ctime::Real = 3
 fliprate::Real = 1/ctime
 v0::Real = .5 * boxwidth/ctime
 dt::Real = 0.001
-totaltime::Real = 100
+totaltime::Real = 120
 interaction = alignsimple
-interactionfliprate = 0.5
+interactionfliprate = 1
 simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate)
-nsims = 15
+# nsims = 15
 
-# simdata = runsim(simparams)
+simdata = runsim(simparams)
+
+savesim(simdata, "5-6-N$(N)-align-simplelong", sequentialtxt, true)
 
 # savesim(simdata, "1basic_N$(N)_t$(floor(totaltime / dt))_align_T$(fliprate)_sim", sequentialtxt)
 # savesim(simdata, "testnewserial", sequentialtxt, true)

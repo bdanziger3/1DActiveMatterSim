@@ -86,8 +86,6 @@ function savesim(simdata::SimulationData, outputfilename::String, filetype::Data
             println(io, csv_serialize(simdata.simparams))
             println(io, "Positions")
             writedlm(io, simdata.positions, ",")
-            println(io, "Wrapped Positions")
-            writedlm(io, simdata.wrappedpositions, ",")
             println(io, "Spins")
             writedlm(io, simdata.spins, ",")
         end

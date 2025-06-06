@@ -1,11 +1,13 @@
 from enum import Enum
 from sim_structs import SimulationData, SimulationParameters
 import numpy as np
+from utils.print_tools import ProgressBar
 
 class DataFileType(Enum):
     SEPERATE_FILES = 1
     SEQUENTIAL_TEXT = 2
     JSON = 3
+    SEQUENTIAL_TEXT_ABS  = 4
 
 def string_list_to_number_list(str_list, seperator=",", out_type=np.float64):
     if type(out_type) == type(np.float64):
@@ -19,7 +21,7 @@ def string_list_to_number_list(str_list, seperator=",", out_type=np.float64):
 
 
 def loadsim(input_fn:str, file_type:DataFileType=DataFileType.SEQUENTIAL_TEXT) -> SimulationData:
-    if file_type == DataFileType.SEQUENTIAL_TEXT:
+    if file_type == DataFileType.SEQUENTIAL_TEXT or file_type == DataFileType.SEQUENTIAL_TEXT_ABS:
         # read file
         fn = open(input_fn, "r")
 
@@ -37,35 +39,30 @@ def loadsim(input_fn:str, file_type:DataFileType=DataFileType.SEQUENTIAL_TEXT) -
         print(sim_params._num_particles)
         ntimes = sim_params.get_ntimes()
             
-        # now read through the data in the order: [positions, wrappedpositions, spins]
+        # now read through the data in the order: [positions, spins]
         line = fn.readline()
-        assert "positions" in line.lower(), "SEQUENTIAL_TXT data file does not have correct `Positions` header. File may be corrupted."
-        
-        # positions
-        # initialize matrix and read in data from file
-        pos_matrix = np.zeros([ntimes, sim_params._num_particles], dtype=np.float64)
-        for i in range(ntimes):                
-            data_line = fn.readline()
-            pos_matrix[i,:] = string_list_to_number_list(data_line)
-        
-        # wrapped_positions
-        # initialize matrix and read in data from file
-        line = fn.readline()
-        assert "wrapped positions" in line.lower(), "SEQUENTUAL_TXT data file does not have correct `Wrapped Positions` header line. File may be corrupted."
-        
 
-        wrapped_pos_matrix = np.zeros([ntimes, sim_params._num_particles], dtype=np.float64)
-        for i in range(ntimes):               
+        # positions
+        assert "positions" in line.lower(), "SEQUENTIAL_TXT data file does not have correct `Positions` header. File may be corrupted."
+        # initialize matrix and read in data from file
+        pb = ProgressBar(ntimes, "Loading positions...", "Done")
+        pos_matrix = np.zeros([ntimes, sim_params._num_particles], dtype=np.float64)
+    
+        for i in range(ntimes):  
+            pb.sparse_progress(i)              
             data_line = fn.readline()
-            wrapped_pos_matrix[i,:] = string_list_to_number_list(data_line)
-        
+            pos_matrix[i,:] = string_list_to_number_list(data_line)        
+        print(i)
+
         # spins
         # initialize matrix and read in data from file
         line = fn.readline()
         assert "spins" in line.lower(), "SEQUENTUAL_TXT data file does not have correct `Spins` header line. File may be corrupted."
         
+        pb = ProgressBar(ntimes, "Loading spins...", "Done")
         spins_matrix = np.zeros([ntimes, sim_params._num_particles], dtype=np.int8)
-        for i in range(ntimes):               
+        for i in range(ntimes):
+            pb.sparse_progress(i)
             data_line = fn.readline()
             spins_matrix[i,:] = string_list_to_number_list(data_line, out_type=np.int8)
         
@@ -73,7 +70,7 @@ def loadsim(input_fn:str, file_type:DataFileType=DataFileType.SEQUENTIAL_TEXT) -
         fn.close()
             
         # store matrix data as `SimulationData` object and return
-        sim_data = SimulationData(sim_params, sim_params.get_times, pos_matrix, wrapped_pos_matrix, spins_matrix)
+        sim_data = SimulationData(sim_params, sim_params.get_times, pos_matrix, spins_matrix)
         return sim_data
     
 def write_dlm(file_name:str, data:list, delimiter:str):

@@ -14,8 +14,11 @@ SHOW = True
 INTERACTION = "None"
 save_filepath = "no_interaction.gif"
 
+example_no_intearaction_sim100 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/6-6/5-6-N100-align-simplelong_simdata.txt"
+example_no_intearaction_sim2 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/6-6/5-6-N2-align-simplelong_simdata.txt"
 example_no_intearaction_sim = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/basic_N100_t100000.0_interaction_none_T0.3333333333333333_sim_simdata.txt"
 example_align_intearaction_sim = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/basic_N100_t100000.0_interaction_alignsimple_T0.3333333333333333_sim_simdata.txt"
+example_align_intearaction_sim2 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/16-5/16-5-N100-align-simplelong_simdata.txt"
 
 
 
@@ -26,8 +29,12 @@ def print_save_progress(current_frame: int, total_frames: int):
     if (total_frames - current_frame) / total_frames < .3: 
         print(f"\033[KSaving File...", end="\r")
 
-def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 30):
+def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 30):    
+    
+    # load data from file
     sim_data:SimulationData = loadsim(file_str)
+
+    # calculate positions from data
 
     # Create a figure and axes
     fig, ax = plt.subplots()
@@ -59,7 +66,7 @@ def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 3
         return sc, title
 
     def sim_update(frame):
-        offsets[:,0] = sim_data.wrapped_positions[frame]
+        offsets[:,0] = sim_data.positions[frame]
         sc.set_offsets(offsets)
         sc.set_color([up_rgba if x == 1 else down_rgbpa for x in sim_data.spins[frame]])
         title.set_text(f"t = {np.round(times[frame], 5)}")
@@ -74,7 +81,7 @@ def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 3
     # max_frames = max_length * anim_fps
     anim_save_step = max(1, int(np.round(sim_data._sim_params.get_ntimes() / anim_length_s) / anim_fps))
 
-    ani = FuncAnimation(fig, sim_update, frames=np.arange(0, sim_data._sim_params.get_ntimes()//10, anim_save_step, dtype=int),
+    ani = FuncAnimation(fig, sim_update, frames=np.arange(0, sim_data._sim_params.get_ntimes(), anim_save_step, dtype=int),
                         init_func=sim_init, blit=True, interval=1000/anim_fps)
     
     if save:
@@ -85,5 +92,5 @@ def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 3
 
 
 
-sim_animate(example_no_intearaction_sim, SHOW, SAVE)
+sim_animate(example_no_intearaction_sim2, SHOW, SAVE)
 # sim_animate(example_align_intearaction_sim, SHOW, SAVE)

@@ -141,29 +141,41 @@ function alignOn2(simparams::SimulationParameters, currwrappedpositions::Matrix{
     end
 
     # now for all particles that can flip, check if they do flip
-    flips = (x -> rand() < simparams.interactionfliprate && x).(canflip)
+    # flips = (x -> randomflips(simparams.dt, simparams.interactionfliprate)).(canflip)
 
-    return flips
+    flips_int::Array{Bool} = Array{Bool}(undef, 1, simparams.numparticles)
+    for p in 1:nparticles
+        if flips_int[p]
+            flips_int[p] = randlinflip(simparams.dt, simparams.interactionfliprate)
+        end
+    end
+
+    return flips_int
 end 
 
-function applyinteraction(simparams::SimulationParameters, currspins::Matrix{Int8}, currwrappedpositions::Matrix{Float64}, randomflips=nothing)
+function applyspininteraction(simparams::SimulationParameters, currspins::Matrix{Int8}, currwrappedpositions::Matrix{Float64}, randomflips=nothing)
     
     if isnothing(randomflips)
         randomflips = randlinflip
     end
 
-    flips_int::Array{Bool} = Array{Bool}(undef, 1, simparams.numparticles)
+    # flips_int::Array{Bool} = Array{Bool}(undef, 1, simparams.numparticles)
+    flips_int::Array{Bool} = zeros(1, simparams.numparticles)
     if simparams.interaction == alignsimple
         # update spins in place from interactions
-        println("INTERACTION ALIGN")
         flips_int = alignOn2(simparams, currwrappedpositions, currspins, false)
     else
-        println("interaction NONE")
-        flips_int = Array{Bool}(undef, 1, simparams.numparticles)
+        # println(flips_int)
     end
         
-    # update spins in place randomly from statistical noise
-    flips_noise::Array{Bool} = (x -> randomflips(simparams.dt, simparams.fliprate)).(currspins)
+    # update spins in place randomly from stochastic noise
+    # flips_noise::Array{Bool} = (x -> randomflips(simparams.dt, simparams.fliprate)).(currspins)
+
+    flips_noise::Array{Bool} = Array{Bool}(undef, 1, simparams.numparticles)
+    for p in 1:simparams.numparticles
+        flips_noise[p] = randomflips(simparams.dt, simparams.fliprate)
+    end
+    # println(flips_noise)
     totalflips = flips_int .|| flips_noise
 
     return totalflips

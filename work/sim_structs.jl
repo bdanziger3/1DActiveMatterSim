@@ -15,13 +15,13 @@ struct SimulationParameters
     interaction::InteractionType
     interactionfliprate::Float64    # probability of a flip for each timestep if in interaction
     starttime::Float64
-    # startinglocations::Array{Real}
-    # randomstarts::Bool
-    # randomspins::Bool
+    startingpositions::Array{Real}
+    randomstarts::Bool
+    randomspins::Bool
 
 
     function # Inner constructor with some default values
-        SimulationParameters(numparticles, totaltime, dt, v0, fliprate, boxwidth=1,  interaction=none, interactionfliprate=0, starttime=0)
+        SimulationParameters(numparticles, totaltime, dt, v0, fliprate, boxwidth=1,  interaction=none, interactionfliprate=Inf64, starttime=0)
         return new(numparticles, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate, starttime)
     end
     function # Inner constructor for null object with all default values
@@ -106,9 +106,7 @@ mutable struct SimulationData
     simparams::SimulationParameters
     times::Array{Float64}
     positions::Matrix{Float64}
-    wrappedpositions::Matrix{Float64}
     spins::Matrix{Int8}
-
 end
 
 function assertdim(simdata::SimulationData)
@@ -118,21 +116,18 @@ function assertdim(simdata::SimulationData)
     ntimes::Int64 = getntimes(simdata.simparams)
     nparticles::Int64 = simparams.numparticles
     possize = size(simdata.positions)
-    wrappedpossize = size(simdata.wrappedpositions)
     spinssize = size(simdata.spins)
     # assert all data arrays have the correct number of times
     @assert ntimes == possize[1] "Positions data has incorrect number of times. Should have $(ntimes), found $(possize[1])"
-    @assert ntimes == wrappedpossize[1] "Wrapped positions data has incorrect number of times. Should have $(ntimes), found $(wrappedpossize[1])"
     @assert ntimes == spinssize[1] "Spins data has incorrect number of times. Should have $(ntimes), found $(spinssize[1])"
     
     # assert all data arrays have the correct number of particles
     @assert nparticles == possize[2] "Positions data has incorrect number of particles. Should have $(nparticles), found $(possize[2])"
-    @assert nparticles == wrappedpossize[2] "Wrapped positions data has incorrect number of particles. Should have $(nparticles), found $(wrappedpossize[2])"
     @assert nparticles == spinssize[2] "Spins data has incorrect number of particles. Should have $(nparticles), found $(spinssize[2])"
 end
 
 function json_serialize(simdata::SimulationData)
-    datadict::Dict = Dict(Pair{String, Dict}("simparams", asdict(simdata.simparams)), Pair{String, Array{Float64}}("times", simdata.times), Pair{String, Matrix{Float64}}("positions", simdata.positions), Pair{String, Matrix{Float64}}("wrappedpositions", simdata.wrappedpositions), Pair{String, Matrix{Int8}}("spins", simdata.spins))
+    datadict::Dict = Dict(Pair{String, Dict}("simparams", asdict(simdata.simparams)), Pair{String, Array{Float64}}("times", simdata.times), Pair{String, Matrix{Float64}}("positions", simdata.positions), Pair{String, Matrix{Int8}}("spins", simdata.spins))
     # println(datadict)
     json_str = JSON.json(datadict, 2)
     # println(json_str)
@@ -164,13 +159,13 @@ end
 function simdata2df(simdata::SimulationData)
     # builds a data frame from the simulation data
 
-    df = DataFrame(particlelabel=Int[], time=Real[], position=Real[], wrappedposition=Real[], spin=Int[])
+    df = DataFrame(particlelabel=Int[], time=Real[], position=Real[], spin=Int[])
 
     # rows consist of data for 1 particle at 1 time
     times = gettimes(simdata.simparams)
     for t_i in 1:length(simdata.times)
         for i in 1:simparams.numparticles
-            push!(df, (i, times[t_i], simdata.positions[t_i, i], simdata.wrappedpositions[t_i, i], simdata.spins[t_i, i]))
+            push!(df, (i, times[t_i], simdata.positions[t_i, i], simdata.spins[t_i, i]))
         end
     end
 
@@ -184,7 +179,6 @@ function df2simdata(df::DataFrame, simparams::SimulationParameters=SimulationPar
     ntimes = length(times)
     nparticles = maximum(sorteddf.particlelabel)
     positions::Matrix{Float64} = zeros(ntimes, nparticles)
-    wrappedpositions::Matrix{Float64} = zeros(ntimes, nparticles)
     spins::Matrix{Int8} = ones(ntimes, nparticles)
 
     for time_i in 1:length(times)
@@ -196,11 +190,10 @@ function df2simdata(df::DataFrame, simparams::SimulationParameters=SimulationPar
         end
         
         positions[time_i, :] = subdf.position
-        wrappedpositions[time_i, :] = subdf.wrappedposition
         spins[time_i, :] = subdf.spin
     end
 
-    simdata = SimulationData(simparams, times, positions, wrappedpositions, spins)
+    simdata = SimulationData(simparams, times, positions, spins)
 
     return simdata
 
