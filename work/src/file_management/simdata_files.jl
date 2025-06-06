@@ -1,4 +1,4 @@
-include("./basic_sim.jl")
+include("../simulation/basic_sim.jl")
 # include("./sim_structs.jl")
 
 using JSON

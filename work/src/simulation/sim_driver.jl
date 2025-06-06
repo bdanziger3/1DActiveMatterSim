@@ -1,14 +1,20 @@
 using CSV
 
 include("./basic_sim.jl")
-include("../simdata_files.jl")
-include("./plot_lib.jl")
+include("../file_management/simdata_files.jl")
+# include("./plot_lib.jl")
+# include("./activesim1d.jl")
+
+# import ActiveSim1D
+# using ActiveSim1D
+
+data_dir = "./work/data"
 
 
 # println(length(simdata.positions[:,1]))
 # println(length(simdata.times))
 # setup simulation params and run the simulation
-N::Int = 2
+N::Int = 3
 boxwidth::Real = 1
 ctime::Real = 3
 fliprate::Real = 1/ctime
@@ -22,7 +28,7 @@ simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, inter
 
 simdata = runsim(simparams)
 
-savesim(simdata, "5-6-N$(N)-align-simplelong", sequentialtxt, true)
+savesim(simdata, "$(data_dir)/5-6-N$(N)-$(interaction)", sequentialtxt, true)
 
 # savesim(simdata, "1basic_N$(N)_t$(floor(totaltime / dt))_align_T$(fliprate)_sim", sequentialtxt)
 # savesim(simdata, "testnewserial", sequentialtxt, true)

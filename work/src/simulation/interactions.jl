@@ -1,5 +1,5 @@
 # Library of interaction functions between particles to use in the simulation
-include("./sim_structs.jl")
+# include("./sim_structs.jl")
 
 
 

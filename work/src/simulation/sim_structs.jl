@@ -1,6 +1,6 @@
 using DataFrames
 
-@enum InteractionType none alignsimple antialignsimple
+@enum InteractionType nointeraction alignsimple antialignsimple
 
 """
 Simulation parameters on which to run particles
@@ -21,7 +21,7 @@ struct SimulationParameters
 
 
     function # Inner constructor with some default values
-        SimulationParameters(numparticles, totaltime, dt, v0, fliprate, boxwidth=1,  interaction=none, interactionfliprate=Inf64, starttime=0)
+        SimulationParameters(numparticles, totaltime, dt, v0, fliprate, boxwidth=1,  interaction=nointeraction, interactionfliprate=Inf64, starttime=0)
         return new(numparticles, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate, starttime)
     end
     function # Inner constructor for null object with all default values

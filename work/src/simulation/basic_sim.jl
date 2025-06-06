@@ -7,8 +7,10 @@ using DataStructures
 using DataFrames
 using ProgressMeter
 
-include("./interactions.jl")
 include("./sim_structs.jl")
+include("./interactions.jl")
+
+
 
 
 # Minumum approach to the 1D Simulations

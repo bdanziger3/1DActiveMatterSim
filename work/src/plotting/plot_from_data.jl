@@ -1,8 +1,8 @@
 using CSV
 
 include("../simulation/basic_sim.jl")
+include("../file_management/simdata_files.jl")
 include("./plot_lib.jl")
-include("./simdata_files.jl")
 
 
 N::Int = 1000
