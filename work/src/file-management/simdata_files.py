@@ -1,5 +1,5 @@
 from enum import Enum
-from sim_structs import SimulationData, SimulationParameters
+from work.simulation.sim_structs import SimulationData, SimulationParameters
 import numpy as np
 from utils.print_tools import ProgressBar
 

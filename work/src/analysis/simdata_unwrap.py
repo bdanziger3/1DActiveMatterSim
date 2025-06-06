@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mplc
 from matplotlib.animation import FuncAnimation
-from sim_structs import SimulationData, SimulationParameters
+from work.simulation.sim_structs import SimulationData, SimulationParameters
 from simdata_files import loadsim, DataFileType
 from utils.print_tools import ProgressBar
 import time

@@ -6,7 +6,10 @@ data1.txt
 
 # *.txt
 
+work/first_anims/
+
 work/dataout1/
+work/data/
 work/df_dataout*
 
 work/txt_data_files/

@@ -1,7 +1,7 @@
 using CSV
 
 include("./basic_sim.jl")
-include("./simdata_files.jl")
+include("../simdata_files.jl")
 include("./plot_lib.jl")
 
 
