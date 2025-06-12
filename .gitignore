@@ -15,4 +15,12 @@ work/df_dataout*
 work/txt_data_files/
 work/plot_outputs/
 
+work/tests/test_data/
+
 other_plots/
+
+
+*.pyc
+
+*.gif
+*.mp4
