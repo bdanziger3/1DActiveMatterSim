@@ -16,33 +16,49 @@ include("./interactions.jl")
 # Minumum approach to the 1D Simulations
 
 # Wrap positions as the simulation runs
-function wrap(positions::AbstractArray{Float64}, boxwidth::Float64)
+function wrap(positions::AbstractArray{Float64}, boxwidth::Float64)::AbstractArray{Float64}
     cwwrap = x -> x - (boxwidth * round(x / boxwidth))
     return cwwrap.(positions)
 end
 
-function runstep!(currpositions::Array{Float64}, currspins::Array{Int8}, simparams::SimulationParameters)
+function runstep!(currpositions::Array{Float64}, currspins::Array{Int8}, simparams::SimulationParameters)::Nothing
     # update positions in place
     currpositions .+= (currspins .* simparams.v0 * simparams.dt)
 
-
     # handle wrapping of positions (periodic boundary conditions)
-    old_p1 = currpositions[1]
     currpositions .= wrap(currpositions, Float64(simparams.boxwidth))
     # update spins in place
-    flips::Array{Bool} = applyspininteraction(simparams, currspins, currpositions)
+    flips::Array{Bool} = calcspinflips(simparams, currspins, currpositions)
     currspins[flips] .*= -1
+
+    return nothing
 end
 
 
-function runsim(simparams::SimulationParameters)
+function runsim(simparams::SimulationParameters, startpositions::Union{Array{Float64}, Nothing}=nothing, startspins::Union{Array{Int8}, Nothing}=nothing)::SimulationData
 
     # set initial particle states
-    # currpositions::Array{Float64} = initialpositions(simparams)
+    # if no start positions specified, start all at 0
+    # if no start spins specified, start all at +1
     currpositions::Array{Float64} = zeros(1, simparams.numparticles)
     currspins::Array{Int8} = fill!(Array{Int8}(undef, 1, simparams.numparticles), 1)
+    if simparams.randomstarts
+        for i in 1:simparams.numparticles
+            currpositions[i] = (rand() - 0.5) * simparams.boxwidth
+            currspins[i] = rand([1,-1])
+        end
+    else
+        if !isnothing(startpositions)
+            currpositions = copy(startpositions)
+        end
+        if !isnothing(startspins)
+            currspins = copy(startspins)
+        end
+    end
+
     
-    times = collect(simparams.starttime:simparams.dt:simparams.totaltime)
+    endtime = simparams.starttime + simparams.totaltime
+    times = collect(simparams.starttime:simparams.dt:endtime)
     nsteps = length(times) - 1
 
     mx::Matrix{Float64} = zeros(nsteps+1, simparams.numparticles)
@@ -63,5 +79,22 @@ function runsim(simparams::SimulationParameters)
 
     simdata = SimulationData(simparams, times, mx, ms)
     return simdata
+end
+
+
+function extendsim(inputfilename::String, time::Number)::SimulationData
+    finalstate::SimulationData = loadsim_nlines(inputfilename, -1, 1)
+    # get final state of existing file
+
+    newsimparams = newstarts(finalstate.simparams, time)
+
+    extended_simdata = runsim(newsimparams, finalstate.positions, finalstate.spins)
+
+    return extended_simdata
+    
+    # run simulation starting from this state
+
+    # save new data by appending it to existing file
+
 end
 

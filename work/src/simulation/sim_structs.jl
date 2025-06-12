@@ -15,20 +15,18 @@ struct SimulationParameters
     interaction::InteractionType
     interactionfliprate::Float64    # probability of a flip for each timestep if in interaction
     starttime::Float64
-    startingpositions::Array{Real}
     randomstarts::Bool
-    randomspins::Bool
 
 
     function # Inner constructor with some default values
-        SimulationParameters(numparticles, totaltime, dt, v0, fliprate, boxwidth=1,  interaction=nointeraction, interactionfliprate=Inf64, starttime=0)
-        return new(numparticles, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate, starttime)
-    end
-    function # Inner constructor for null object with all default values
-        SimulationParameters(paramsdict::Dict)
-        return new(paramsdict["numparticles"], paramsdict["totaltime"], paramsdict["dt"], paramsdict["v0"], paramsdict["fliprate"], paramsdict["boxwidth"], paramsdict["interaction"], paramsdict["interactionfliprate"], paramsdict["starttime"])
+        SimulationParameters(numparticles, totaltime, dt, v0, fliprate, boxwidth=1,  interaction=nointeraction, interactionfliprate=Inf64, starttime=0, randomstarts=false)
+        return new(numparticles, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate, starttime, randomstarts)
     end
     function # Inner constructor for dictionary input
+        SimulationParameters(paramsdict::Dict)
+        return new(paramsdict["numparticles"], paramsdict["totaltime"], paramsdict["dt"], paramsdict["v0"], paramsdict["fliprate"], paramsdict["boxwidth"], paramsdict["interaction"], paramsdict["interactionfliprate"], paramsdict["starttime"], paramsdict["randomstarts"])
+    end
+    function # Inner constructor for null object with all default values
         SimulationParameters()
         return new(0, 0, 0, 0, 0)
     end
@@ -90,7 +88,7 @@ function getntimes(simparams::SimulationParameters)::Int64
 end
 
 function asarray(simparams::SimulationParameters)::Array{Any}
-    ar = [simparams.numparticles, simparams.totaltime, simparams.dt, simparams.v0, simparams.fliprate, simparams.boxwidth, simparams.interaction, simparams.interactionfliprate, simparams.starttime]
+    ar::Array{Any} = [simparams.numparticles, simparams.totaltime, simparams.dt, simparams.v0, simparams.fliprate, simparams.boxwidth, simparams.interaction, simparams.interactionfliprate, simparams.starttime, simparams.randomstarts]
     return ar
 end
 
@@ -99,6 +97,22 @@ function assertparams(simparams::SimulationParameters)::Bool
     @assert simparams.dt <= simparams.totaltime "timestep `dt` must be less than `totaltime`."
 
     return true
+end
+
+"""
+Returns a copy of the `SimulationParameters` struct object but with `randomstarts` set to false and updated `starttime` and `totaltime`
+"""
+function newstarts(simparams::SimulationParameters, timeextension::Float64)::SimulationParameters
+    # get array of original simparams
+    sparray = asarray(simparams)
+
+    # update `totaltime` and `starttime`
+    sparray[2] = timeextension
+    sparray[9] = simparams.totaltime
+
+    # change `randomstarts` to `false`
+    sparray[10] = false
+    return SimulationParameters(sparray)
 end
 
 

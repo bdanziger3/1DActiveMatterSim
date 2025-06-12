@@ -5,7 +5,7 @@ import json
 Simulation parameters on which to run particles
 """
 class SimulationParameters:
-    def __init__(self, num_particles:int, total_time:float, dt:float, v0:float, flip_rate:float, box_width:float=1, interaction:str="none", interaction_fliprate:float=np.inf, start_time:float=0):
+    def __init__(self, num_particles:int, total_time:float, dt:float, v0:float, flip_rate:float, box_width:float=1, interaction:str="none", interaction_fliprate:float=np.inf, start_time:float=0, random_starts:bool=False):
         self._num_particles:int = int(num_particles)
         self._total_time = total_time
         self._dt = dt
@@ -15,8 +15,8 @@ class SimulationParameters:
         self.interaction = interaction
         self.interaction_fliprate = interaction_fliprate
         self._start_time = start_time
+        self._random_starts = random_starts
         self._starting_positions = 0
-        self._random_starts = False
         self._random_spins = False
 
 

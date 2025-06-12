@@ -8,8 +8,95 @@ function randlinflip(dt::Real, fliprate::Real)
     return rand() < (dt * fliprate)
 end
 
-function alignOn2(simparams::SimulationParameters, currwrappedpositions::Matrix{<:Real}, currspins::Matrix{Int8}, antialign::Bool = false)
-    nparticles =  length(currwrappedpositions)
+function findnn(currpositions::Matrix{<:Real}, particlei::Int)
+    # return indices of left and right neighbors for particle i
+    
+    nparticles = length(currpositions)
+    x_i = currpositions[particlei]
+    left = -1
+    leftdx = Inf
+    right = -1
+    rightdx = Inf
+    ontop = []
+    for p_i in 1:nparticles
+        if p_i != particlei
+
+            d_p = currpositions[p_i] - x_i
+            if d_p < 0
+                if abs(d_p) < leftdx
+                    leftdx = abs(d_p)
+                    left = p_i
+                end
+            elseif  d_p > 0
+                if abs(d_p) < rightdx
+                    rightdx = abs(d_p)
+                    right = p_i
+                end
+            else
+                push!(ontop, p_i)
+            end
+        end
+    end
+
+    # if no overlaps
+    if length(ontop) == 0
+        return [left, right]
+    elseif length(ontop) == 1
+        if right == -1 || leftdx <= rightdx
+            return [left, ontop[1]]
+        else
+            return [ontop[1], right]
+        end
+    else
+        # if at least 2 overlapping particles, return them all 
+        return ontop
+    end
+end
+
+
+function alignOn2(simparams::SimulationParameters, currpositions::Matrix{<:Real}, currspins::Matrix{Int8}, antialign::Bool = false)
+    nparticles =  length(currpositions)
+    canflip::Array{Bool} = Array{Bool}(undef, 1, nparticles)
+    canflip .= false
+
+    # naive approach: check all particles to find nearest neighbors    
+    for p_i in 1:nparticles
+        # find nearest neighbors of each particle
+        neighbors = findnn(currpositions, p_i)
+        
+        # calculate total spin of all neighboring particles
+        spinsum = 0
+        for p in neighbors
+            if p != -1
+                spinsum += currspins[p]
+            end
+        end
+        polarity = sign(spinsum)
+
+        # set p_i as elligible for an interaction flip if the spinsum is nonzero and opposite from the current spin of p_i
+        if currspins[p_i] == -polarity
+            canflip[p_i] = true
+        end
+    end
+
+    # now for all particles that can flip, check if they do flip
+    # flips = (x -> randomflips(simparams.dt, simparams.interactionfliprate)).(canflip)
+
+    flips_int::Array{Bool} = Array{Bool}(undef, 1, simparams.numparticles)
+
+    for p in 1:nparticles
+        if canflip[p]
+            flips_int[p] = randlinflip(simparams.dt, simparams.interactionfliprate)
+        else
+            flips_int[p] = false
+        end
+    end
+
+    return flips_int
+end 
+
+function alignOn2_quick(simparams::SimulationParameters, currpositions::Matrix{<:Real}, currspins::Matrix{Int8}, antialign::Bool = false)
+    nparticles =  length(currpositions)
     canflip::Array{Bool} = Array{Bool}(undef, 1, nparticles)
     canflip .= false
 
@@ -30,7 +117,7 @@ function alignOn2(simparams::SimulationParameters, currwrappedpositions::Matrix{
         rightdist = Inf
 
         # get discretized position
-        positionint = Int64(round(currwrappedpositions[p_i] / mindx))
+        positionint = Int64(round(currpositions[p_i] / mindx))
 
         if p_i in keys(leftdict) && p_i in keys(rightdict)
 
@@ -40,7 +127,7 @@ function alignOn2(simparams::SimulationParameters, currwrappedpositions::Matrix{
         if !((p_i in overlap3set) || (p_i in keys(leftdict)) && (p_i in keys(rightdict)))
             for p_j in 1:nparticles
                 if p_i != p_j
-                    d_ji = currwrappedpositions[p_j] - currwrappedpositions[p_i]
+                    d_ji = currpositions[p_j] - currpositions[p_i]
                     
                     if abs(d_ji) < (mindx / 2)
                         # if particles on top of each other, count how many at each position
@@ -153,20 +240,21 @@ function alignOn2(simparams::SimulationParameters, currwrappedpositions::Matrix{
     return flips_int
 end 
 
-function applyspininteraction(simparams::SimulationParameters, currspins::Matrix{Int8}, currwrappedpositions::Matrix{Float64}, randomflips=nothing)
+function calcspinflips(simparams::SimulationParameters, currspins::Matrix{Int8}, currpositions::Matrix{Float64}, randomflips=nothing)
     
     if isnothing(randomflips)
         randomflips = randlinflip
     end
 
-    # flips_int::Array{Bool} = Array{Bool}(undef, 1, simparams.numparticles)
     flips_int::Array{Bool} = zeros(1, simparams.numparticles)
     if simparams.interaction == alignsimple
         # update spins in place from interactions
-        flips_int = alignOn2(simparams, currwrappedpositions, currspins, false)
+        flips_int = alignOn2(simparams, currpositions, currspins, false)
     else
         # println(flips_int)
     end
+    # println(" ")
+    # println(flips_int)
         
     # update spins in place randomly from stochastic noise
     # flips_noise::Array{Bool} = (x -> randomflips(simparams.dt, simparams.fliprate)).(currspins)
@@ -175,6 +263,8 @@ function applyspininteraction(simparams::SimulationParameters, currspins::Matrix
     for p in 1:simparams.numparticles
         flips_noise[p] = randomflips(simparams.dt, simparams.fliprate)
     end
+
+    # println(flips_noise)
     # println(flips_noise)
     totalflips = flips_int .|| flips_noise
 

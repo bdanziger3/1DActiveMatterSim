@@ -14,21 +14,25 @@ data_dir = "./work/data"
 # println(length(simdata.positions[:,1]))
 # println(length(simdata.times))
 # setup simulation params and run the simulation
-N::Int = 3
+N::Int = 100
 boxwidth::Real = 1
-ctime::Real = 3
-fliprate::Real = 1/ctime
-v0::Real = .5 * boxwidth/ctime
-dt::Real = 0.001
-totaltime::Real = 120
+ctime::Real = 100
+fliprate::Real = 1
+v0::Real = 1 #.5 * boxwidth / 3
+dt::Real = 0.0001
+totaltime::Real = 30
 interaction = alignsimple
-interactionfliprate = 1
-simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate)
+interactionfliprate = 300
+randomstarts = true
+simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate, 0, randomstarts)
 # nsims = 15
 
-simdata = runsim(simparams)
+extendsim("/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/saveas_rwt.txt_simdata.txt", 10)
 
-savesim(simdata, "$(data_dir)/5-6-N$(N)-$(interaction)", sequentialtxt, true)
+
+# simdata = runsim(simparams)
+
+# savesim(simdata, "$(data_dir)/5-6-N$(N)-$(interaction)-300-noflip", sequentialtxt, true)
 
 # savesim(simdata, "1basic_N$(N)_t$(floor(totaltime / dt))_align_T$(fliprate)_sim", sequentialtxt)
 # savesim(simdata, "testnewserial", sequentialtxt, true)
