@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mplc
 from matplotlib.animation import FuncAnimation
+import moviepy
 
 # add src dir to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -18,17 +19,25 @@ ALPHA = 0.3
 SAVE = False
 SHOW = True
 INTERACTION = "None"
-save_filepath = "no_interaction.gif"
+save_filepath = "N100_strong_interaction_norandflip.mp4"
+
+N3_rand = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N3-alignsimple_rand_simdata.txt"
+N100_rand = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N100-alignsimple_rand_simdata.txt"
+N100_rand_strong = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N100-alignsimple-300_simdata.txt"
+N100_rand_strong_norandflip = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N100-alignsimple-300-noflip_simdata.txt"
 
 example_no_intearaction_sim100 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N100-align-simplelong_simdata.txt"
 example_no_intearaction_sim2 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N2-align-simplelong_simdata.txt"
 example_no_intearaction_sim3 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N3-nointeraction_simdata.txt"
 example_no_intearaction_sim3_int = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N3-alignsimple_simdata.txt"
 example_no_intearaction_sim3_strong_int = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N3-strong-alignsimple_simdata.txt"
+example_no_intearaction_sim3_mid_int = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N3-alignsimple_1_simdata.txt"
+example_no_intearaction_sim100_mid_int = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N100-alignsimple_simdata.txt"
 example_no_intearaction_sim = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/basic_N100_t100000.0_interaction_none_T0.3333333333333333_sim_simdata.txt"
 example_align_intearaction_sim = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/basic_N100_t100000.0_interaction_alignsimple_T0.3333333333333333_sim_simdata.txt"
 example_align_intearaction_sim2 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/16-5/16-5-N100-align-simplelong_simdata.txt"
 
+new_rowwise = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/saveas_rwt.txt_simdata.txt"
 
 
 def print_save_progress(current_frame: int, total_frames: int):
@@ -65,7 +74,7 @@ def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 3
 
     sc = ax.scatter(np.transpose(init_xdata), np.transpose(init_ydata), s=300, c="k", marker='.', animated=True)
     title = ax.text(0, .15, "t = 0")
-    label = ax.text(-.5, .15, f"Particles: {sim_data._sim_params._num_particles}\nFlip Rate: {sim_data._sim_params._flip_rate}\nInteraction: {sim_data._sim_params.interaction}")
+    label = ax.text(-.5, .15, f"Particles: {sim_data._sim_params._num_particles}\nStochastic Flip Rate: {np.round(sim_data._sim_params._flip_rate, 4)}\nInteraction: {sim_data._sim_params.interaction}\nInteraction Flip Rate: {np.round(sim_data._sim_params.interaction_fliprate, 4)}")
 
     def sim_init():
         ax.set_xlim(-sim_data._sim_params._box_width/2, sim_data._sim_params._box_width/2)
@@ -94,12 +103,24 @@ def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 3
                         init_func=sim_init, blit=True, interval=1000/anim_fps)
     
     if save:
-        ani.save(save_filepath, fps=anim_fps, progress_callback=print_save_progress)
+        if save_filepath.endswith(".mp4"):
+            save_filepath_pre = save_filepath[:-4]
+            save_filepath_gif = f"{save_filepath_pre}.gif"
+        elif save_filepath.endswith(".gif"):
+            save_filepath_gif = save_filepath
+        
+        ani.save(save_filepath_gif, fps=anim_fps, progress_callback=print_save_progress)
+
+        if save_filepath.endswith(".mp4"):
+            clip = moviepy.VideoFileClip(save_filepath_gif)
+            clip.write_videofile(save_filepath)
+
+
 
     if show:
         plt.show()
 
 
 
-sim_animate(example_no_intearaction_sim3_strong_int, SHOW, SAVE)
+sim_animate(new_rowwise, SHOW, SAVE)
 # sim_animate(example_align_intearaction_sim, SHOW, SAVE)

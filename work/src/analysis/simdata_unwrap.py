@@ -53,7 +53,7 @@ def simdata_unwrap(sim_data:SimulationData):
 
 def sim_unwrap_preload(file_str:str, jump_thresh:float = -1, save:bool = False):
     # load data file and unwrap the positions
-    sim_data:SimulationData = loadsim(file_str, file_type=DataFileType.SEQUENTIAL_TEXT_ABS)
+    sim_data:SimulationData = loadsim(file_str, file_type=DataFileType.SEQUENTIAL_TXT)
     unwrapped_positions = sim_unwrap_preload(sim_data)
 
     return unwrapped_positions
@@ -62,7 +62,7 @@ def sim_unwrap_preload(file_str:str, jump_thresh:float = -1, save:bool = False):
 
 def sim_wrap_buffer(file_str:str, jump_thresh:float = -1, save:bool = False):
     
-    sim_data:SimulationData = loadsim(file_str, file_type=DataFileType.SEQUENTIAL_TEXT_ABS)
+    sim_data:SimulationData = loadsim(file_str, file_type=DataFileType.SEQUENTIAL_TXT)
 
     # default behavior uses `jump_thresh` of half the box width
     if jump_thresh <= 0:
