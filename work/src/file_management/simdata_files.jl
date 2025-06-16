@@ -2,17 +2,57 @@ include("../simulation/basic_sim.jl")
 # include("./sim_structs.jl")
 
 using JSON
+using Dates
 
 @enum DataFileType seperatefiles sequentialtxt rowwisetxt json
 
+function getfirstsaveddate(filename::String)
+    file = open(filename, "r")
+    firstline = readline(file)
+    dateline = readline(file)
+    saveddate::DateTime = DateTime(0)
+        
+    # if the current line has a date, read it
+    datestartindex = length("Saved at ") + 1
+    try 
+        saveddate = DateTime(dateline[datestartindex:end])
+    catch e
+        saveddate = DateTime(0)
+    end
+    close(file)
 
-dft::DataFileType = seperatefiles
+    return saveddate
+end
+
+function checkfilename(outputfilename::String)
+    if isfile(outputfilename)
+        saveddate::DateTime = getfirstsaveddate(outputfilename)
+        println("Overwrite $(outputfilename) with simulation data saved at $(saveddate)? Y/N ")
+
+        response = readline()
+        if lowercase(response) != "y"
+            # find new file_name
+            fileprefix = outputfilename[1:end-4]
+            i = 0
+            while isfile("$(fileprefix)_$(i).txt")
+                i += 1
+            end
+            newname = "$(fileprefix)_$(i).txt"
+            println("Saving instead as $(newname)")
+            return newname
+        end
+    end
+
+    # Use original name if file doesn't exist or user confirms overwrite
+    return outputfilename
+end
 
 function loadsim(inputfilename::String, filetype::DataFileType)::SimulationData
     # initialize parameters and matrices        
     ntimes::Int64 = 0
     posmatrix::Matrix{Float64} = zeros(0, 0)
     spinsmatrix::Matrix{Int8} = zeros(0, 0)
+    simdates::Array{DateTime} = Array{DateTime}[]
 
     if filetype == rowwisetxt
         # read file
@@ -23,6 +63,17 @@ function loadsim(inputfilename::String, filetype::DataFileType)::SimulationData
         @assert (contains(lowercase(line), "row wise txt") || contains(lowercase(line), "rowwise txt")) "Rowwisetxt data file does not have correct first line. File may be corrupted."
         
         line = readline(file)
+
+        # if the current line is a date, read it. Else skip to next line
+        datestartindex = length("Saved at ") + 1
+        try 
+            push!(simdates, DateTime(line[datestartindex:end]))
+        catch e
+            push!(simdates, DateTime(0))
+        else
+            line = readline()
+        end
+
         @assert contains(lowercase(line), "simulation parameters") "Rowwisetxt data file does not have header. File may be corrupted."
        
         # read next line to get number of position data points
@@ -115,6 +166,7 @@ function loadsim_nlines(inputfilename::String, startline::Int, nlines::Int, file
     ntimes::Int64 = nlines
     posmatrix::Matrix{Float64} = zeros(nlines, 0)
     spinsmatrix::Matrix{Int8} = zeros(nlines, 0)
+    simdates::Array{DateTime} = Array{DateTime}[]
 
     # read file
     file = open(inputfilename, "r")
@@ -124,6 +176,15 @@ function loadsim_nlines(inputfilename::String, startline::Int, nlines::Int, file
     @assert (contains(lowercase(line), "row wise txt") || contains(lowercase(line), "rowwise txt")) "Rowwisetxt data file does not have correct first line. File may be corrupted."
     
     line = readline(file)
+    # if the current line is a date, read it. Else skip to next line
+    datestartindex = length("Saved at ") + 1
+    try 
+        push!(simdates, DateTime(line[datestartindex:end]))
+    catch e
+        push!(simdates, DateTime(0))
+    else
+        line = readline(file)
+    end
     @assert contains(lowercase(line), "simulation parameters") "Rowwisetxt data file does not have header. File may be corrupted."
     
     # read next line to get number of position data points
@@ -171,14 +232,21 @@ Saves simulation data from a `SimulationData` object to a data file.
 
 Can specify the output file type with `filetype`.
 
-By default appends the data to the file at `outputfilename` following the structure of the `rowwisetxt` DataFileType.
-Set `clearfile` to `true` to clear the file before writing instead.
+By default, asks for confirmation if overwriting an existing file.
+Set `forceclear` to `true` to clear the file without warning.
 
 """
-function savesim(simdata::SimulationData, outputfilename::String, filetype::DataFileType=rowwisetxt, clearfile::Bool=false)         
+function savesim(simdata::SimulationData, outputfilename::String, filetype::DataFileType=rowwisetxt, forceclear::Bool=false)         
+    # Ask to confirm if overwriting existing file
+    if !forceclear
+        filenametouse = checkfilename(outputfilename)
+    else
+        filenametouse = outputfilename
+    end
+    
     if filetype == sequentialtxt
-        filestring = "$(outputfilename)_simdata.txt"
-        open(filestring, clearfile ? "w" : "a") do io
+        filestring = "$(filenametouse[-4:end])_seq.txt"
+        open(filestring, "w") do io
             println(io, "Sequential txt")   # Sequential .txt
             println(io, "Simulation Parameters")
             println(io, csv_serialize(simdata.simparams))
@@ -188,9 +256,9 @@ function savesim(simdata::SimulationData, outputfilename::String, filetype::Data
             writedlm(io, simdata.spins, ",")
         end
     elseif filetype == rowwisetxt
-        filestring = "$(outputfilename)_simdata.txt"
-        open(filestring, clearfile ? "w" : "a") do io
+        open(filenametouse, "w") do io
             println(io, "Row Wise txt")  # Row Wise .txt
+            println(io, "Saved at $(now())")  # Timestamp
             println(io, "Simulation Parameters")
             println(io, csv_serialize(simdata.simparams))
             println(io, "Particle States ([positions], [spins])")
@@ -200,26 +268,35 @@ function savesim(simdata::SimulationData, outputfilename::String, filetype::Data
             particlestates[:,simdata.simparams.numparticles+1:end] = simdata.spins
             writedlm(io, particlestates, ",")
         end
-    elseif filetype == seperatefiles
-        simdatafile_prefix = outputfilename
-        writedlm("$(simdatafile_prefix)_x.txt", simdata.positions, ",")
-        writedlm("$(simdatafile_prefix)_xwrap.txt", simdata.wrappedpositions, ",")
-        writedlm("$(simdatafile_prefix)_S.txt", simdata.spins, ",")
-        writedlm("$(simdatafile_prefix)_t.txt", simdata.times, ",")
     end
 
 end
 
 
+"""
+Saves simulation data from a `SimulationData` object to an existing data file.
 
+Appends to the bottom of an existing file with a new header for the timestamp and Simulation Parameters
+"""
+function appendsim(simdata::SimulationData, outputfilename::String)         
+    # Only works with Row Wise txt files
+    # Read file to make sure it's the right type
+    file = open(outputfilename, "r")
+    firstline = readline(file)
+    @assert contains(lowercase(firstline), "row wise txt") "Incorrect file header on first line. File not identified as Row Wise txt"
+    close(file)
 
+    # now append new data to the end
+    open(outputfilename, "a") do io
+        println(io, "Saved at $(now())")  # Timestamp
+        println(io, "Simulation Parameters")
+        println(io, csv_serialize(simdata.simparams))
+        println(io, "Particle States ([positions], [spins])")
+        # construct particle state matrix by concatenating states of position and spin
+        particlestates::Matrix{Any} = zeros(getntimes(simdata.simparams), 2 * simdata.simparams.numparticles)
+        particlestates[:,1:simdata.simparams.numparticles] = simdata.positions
+        particlestates[:,simdata.simparams.numparticles+1:end] = simdata.spins
+        writedlm(io, particlestates, ",")
+    end
+end
 
-# sd = loadsim("/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N3-strong-alignsimple_simdata.txt", sequentialtxt)
-
-# savesim(sd, "saveas_rwt.txt", rowwisetxt, true)
-
-# sdr = loadsim("/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/saveas_rwt.txt_simdata.txt", rowwisetxt)
-
-# println(sd == sdr)
-
-# savesim(sdr, "saveas_rwt2.txt", rowwisetxt, true)

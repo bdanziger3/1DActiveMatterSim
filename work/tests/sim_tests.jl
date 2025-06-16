@@ -38,10 +38,12 @@ function test_extendsim()
     sd1 = runsim(simparams)
 
     filestring = "./test_data/test_extendsim_sd1"
-    savesim(sd1, filestring, rowwisetxt, true)
+    file1 = "$(filestring).txt"
+    file2 = "$(filestring)_ext.txt"
+    savesim(sd1, file1, rowwisetxt)
     
-    sd2 = extendsim("$(filestring)_simdata.txt", timeextension)
-    savesim(sd2, "$(filestring)_ext", rowwisetxt, true)
+    sd2 = extendsim(file1, timeextension)
+    savesim(sd2, file2, rowwisetxt)
 
     # check params
     @assert sd2.simparams.starttime == sd1.simparams.totaltime
@@ -55,6 +57,9 @@ function test_extendsim()
     for i in 3:8
         @assert sp1[i] == sp2[i]
     end
+
+
+    appendsim(sd2, file1)
 end
 
 
