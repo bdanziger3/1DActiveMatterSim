@@ -8,31 +8,34 @@ include("../file_management/simdata_files.jl")
 # import ActiveSim1D
 # using ActiveSim1D
 
-data_dir = "./work/data"
+data_dir = "../../data"
 
 
 # println(length(simdata.positions[:,1]))
 # println(length(simdata.times))
 # setup simulation params and run the simulation
-N::Int = 100
+N::Int = 1e4
 boxwidth::Real = 1
-ctime::Real = 100
 fliprate::Real = 1
-v0::Real = 1 #.5 * boxwidth / 3
-dt::Real = 0.0001
-totaltime::Real = 30
+v0::Real = 1
+dt::Real = 1e-4
+totaltime::Real = .005
 interaction = alignsimple
 interactionfliprate = 300
 randomstarts = true
-simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate, 0, randomstarts)
+# snapshot_dt = 1e-2
+simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate, 0, randomstarts, -1)
+
+
+
 # nsims = 15
 
-extendsim("/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/saveas_rwt.txt_simdata.txt", 10)
+# extendsim("/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/saveas_rwt.txt_simdata.txt", 10)
 
 
-# simdata = runsim(simparams)
+simdata = runsim(simparams)
 
-# savesim(simdata, "$(data_dir)/5-6-N$(N)-$(interaction)-300-noflip", sequentialtxt, true)
+savesim(simdata, "$(data_dir)/16-6/N$(N)-$(interaction)-t$(totaltime).txt", rowwisetxt, true)
 
 # savesim(simdata, "1basic_N$(N)_t$(floor(totaltime / dt))_align_T$(fliprate)_sim", sequentialtxt)
 # savesim(simdata, "testnewserial", sequentialtxt, true)

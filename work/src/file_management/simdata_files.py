@@ -1,6 +1,7 @@
 import sys, os
 from enum import Enum
 import numpy as np
+import time
 
 # add src dir to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -13,6 +14,10 @@ class DataFileType(Enum):
     SEQUENTIAL_TXT = 2
     ROWWISE_TXT = 3
     JSON = 4
+
+def parse_julia_datetime(datetime_str:str) -> time.struct_time:
+    t = time.strptime(datetime_str.strip(), r"%Y-%m-%dT%H:%M:%S")
+    return t
 
 def string_list_to_number_list(str_list, seperator=",", out_type=np.float64):
     if type(out_type) == type(np.float64):
@@ -44,12 +49,20 @@ def loadsim(input_fn:str, file_type:DataFileType=DataFileType.ROWWISE_TXT) -> Si
 
         line = fn.readline()
 
+        # if the current line is a date, read it and skip to next line. Else do nothing
+        sim_dates:list[time.struct_time] = []
+        datestartindex = len("Saved at ")
+        try:
+            sim_dates.append(parse_julia_datetime(line[datestartindex:]))
+            line = fn.readline()
+        except ValueError as e:
+            sim_dates.append(parse_julia_datetime("0001-01-01T00:00:00"))
+
         assert "simulation parameters" in line.lower(), "ROWWISE_TXT data file does not have correct header structure. File may be corrupted."
        
         # read next line to get number of position data points
         sim_param_info = fn.readline()
-        expected_types = [np.float64, np.float64, np.float64, np.float64, np.float64, np.float64, str, np.float64, np.float64, bool]
-        sim_param_info_list = string_list_to_number_list(sim_param_info, out_type=expected_types)
+        sim_param_info_list = string_list_to_number_list(sim_param_info, out_type=SimulationParameters.expected_types)
         sim_params:SimulationParameters = SimulationParameters.construct_from_list(sim_param_info_list)
         ntimes = sim_params.get_ntimes()
             
@@ -82,8 +95,7 @@ def loadsim(input_fn:str, file_type:DataFileType=DataFileType.ROWWISE_TXT) -> Si
        
         # read next line to get number of position data points
         sim_param_info = fn.readline()
-        expected_types = [np.float64, np.float64, np.float64, np.float64, np.float64, np.float64, str, np.float64]
-        sim_param_info_list = string_list_to_number_list(sim_param_info, out_type=expected_types)
+        sim_param_info_list = string_list_to_number_list(sim_param_info, out_type=SimulationParameters.expected_types)
         sim_params:SimulationParameters = SimulationParameters.construct_from_list(sim_param_info_list)
         ntimes = sim_params.get_ntimes()
             
@@ -121,13 +133,15 @@ def loadsim(input_fn:str, file_type:DataFileType=DataFileType.ROWWISE_TXT) -> Si
     return sim_data
 
 
-"""
-Reads only the `n_lines` lines of data in a data file starting at line `start_line`.
-`start_line` is indexed at 0
+def loadsim_n_lines(input_fn:str, start_line:int, n_lines:int, file_type:DataFileType=DataFileType.ROWWISE_TXT, change_simparams=False) -> SimulationData:
+    """
+    Reads only the `n_lines` lines of data in a data file starting at line `start_line`.
+    `start_line` is indexed at 0
 
-use `start_line=-1` to read the last `n_lines` lines of the file
-"""
-def loadsim_n_lines(input_fn:str, start_line:int, n_lines:int, file_type:DataFileType=DataFileType.ROWWISE_TXT) -> SimulationData:
+    use `start_line=-1` to read the last `n_lines` lines of the file
+
+    use `change_simparams=True` to change the `SimulationParams` object to match the length of the number of lines
+    """
     # open and read file
     fn = open(input_fn, "r")
     line = fn.readline()
@@ -139,12 +153,21 @@ def loadsim_n_lines(input_fn:str, start_line:int, n_lines:int, file_type:DataFil
 
         line = fn.readline()
 
+        # if the current line is a date, read it and skip to next line. Else do nothing
+        sim_dates = []
+        datestartindex = len("Saved at ")
+        try:
+            sim_dates.append(parse_julia_datetime(line[datestartindex:]))
+            line = fn.readline()
+        except ValueError:
+            sim_dates.append(parse_julia_datetime("0001-01-01T00:00:00"))
+
+
         assert "simulation parameters" in line.lower(), "ROWWISE_TXT data file does not have correct header structure. File may be corrupted."
        
         # read next line to get number of position data points
         sim_param_info = fn.readline()
-        expected_types = [np.float64, np.float64, np.float64, np.float64, np.float64, np.float64, str, np.float64, np.float64, bool]
-        sim_param_info_list = string_list_to_number_list(sim_param_info, out_type=expected_types)
+        sim_param_info_list = string_list_to_number_list(sim_param_info, out_type=SimulationParameters.expected_types)
         print(sim_param_info)
         print(sim_param_info_list)
         sim_params:SimulationParameters = SimulationParameters.construct_from_list(sim_param_info_list)
@@ -179,6 +202,10 @@ def loadsim_n_lines(input_fn:str, start_line:int, n_lines:int, file_type:DataFil
 
     # close file
     fn.close()
+
+    # Change simparams if toggled
+    if change_simparams:
+        sim_params._total_time = sim_params._snapshot_dt * n_lines
         
     # store matrix data as `SimulationData` object and return
     sim_data = SimulationData(sim_params, sim_params.get_times, pos_matrix, spins_matrix)
@@ -195,16 +222,16 @@ def write_dlm(file_name:str, data:list, delimiter:str):
             f.write(",".join([str(x) for x in data[r]])+"\n")
     f.close()
 
-"""
-Saves simulation data from a `SimulationData` object to a data file.
-
-Can specify the output file type with `filetype`.
-
-By default appends the data to the file at `outputfilename`.
-Set `clearfile` to `true` to clear the file before writing instead.
-
-"""
 def save_sim(sim_data:SimulationData, output_fn:str, file_type:DataFileType=DataFileType.SEQUENTIAL_TXT, clear_file:bool=False):
+    """
+    Saves simulation data from a `SimulationData` object to a data file.
+
+    Can specify the output file type with `filetype`.
+
+    By default appends the data to the file at `outputfilename`.
+    Set `clearfile` to `true` to clear the file before writing instead.
+
+    """
     file_str = f"{output_fn}_simdata.txt"
     fn = open(file_str, "w" if clear_file else "a")
     if file_type == DataFileType.SEQUENTIAL_TXT:

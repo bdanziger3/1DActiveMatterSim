@@ -71,7 +71,7 @@ function loadsim(inputfilename::String, filetype::DataFileType)::SimulationData
         catch e
             push!(simdates, DateTime(0))
         else
-            line = readline()
+            line = readline(file)
         end
 
         @assert contains(lowercase(line), "simulation parameters") "Rowwisetxt data file does not have header. File may be corrupted."
@@ -245,7 +245,7 @@ function savesim(simdata::SimulationData, outputfilename::String, filetype::Data
     end
     
     if filetype == sequentialtxt
-        filestring = "$(filenametouse[-4:end])_seq.txt"
+        filestring = "$(filenametouse[1:end-4])_seq.txt"
         open(filestring, "w") do io
             println(io, "Sequential txt")   # Sequential .txt
             println(io, "Simulation Parameters")
@@ -258,7 +258,7 @@ function savesim(simdata::SimulationData, outputfilename::String, filetype::Data
     elseif filetype == rowwisetxt
         open(filenametouse, "w") do io
             println(io, "Row Wise txt")  # Row Wise .txt
-            println(io, "Saved at $(now())")  # Timestamp
+            println(io, "Saved at $(round(now(), Dates.Second(1)))")  # Timestamp
             println(io, "Simulation Parameters")
             println(io, csv_serialize(simdata.simparams))
             println(io, "Particle States ([positions], [spins])")
@@ -288,12 +288,13 @@ function appendsim(simdata::SimulationData, outputfilename::String)
 
     # now append new data to the end
     open(outputfilename, "a") do io
-        println(io, "Saved at $(now())")  # Timestamp
+        println(io, "Saved at $(round(now(), Dates.Second(1)))")  # Timestamp
         println(io, "Simulation Parameters")
         println(io, csv_serialize(simdata.simparams))
         println(io, "Particle States ([positions], [spins])")
         # construct particle state matrix by concatenating states of position and spin
-        particlestates::Matrix{Any} = zeros(getntimes(simdata.simparams), 2 * simdata.simparams.numparticles)
+        # particlestates::Matrix{Any} = zeros(getntimes(simdata.simparams), 2 * simdata.simparams.numparticles)
+        particlestates::Matrix{Any} = zeros(getnsaves(simdata.simparams, simdata.simparams.dt), 2 * simdata.simparams.numparticles)
         particlestates[:,1:simdata.simparams.numparticles] = simdata.positions
         particlestates[:,simdata.simparams.numparticles+1:end] = simdata.spins
         writedlm(io, particlestates, ",")

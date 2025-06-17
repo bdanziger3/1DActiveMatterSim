@@ -16,15 +16,19 @@ struct SimulationParameters
     interactionfliprate::Float64    # probability of a flip for each timestep if in interaction
     starttime::Float64
     randomstarts::Bool
+    snapshot_dt::Float64
 
 
     function # Inner constructor with some default values
-        SimulationParameters(numparticles, totaltime, dt, v0, fliprate, boxwidth=1,  interaction=nointeraction, interactionfliprate=Inf64, starttime=0, randomstarts=false)
-        return new(numparticles, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate, starttime, randomstarts)
+        SimulationParameters(numparticles, totaltime, dt, v0, fliprate, boxwidth=1,  interaction=nointeraction, interactionfliprate=Inf64, starttime=0, randomstarts=false, snapshot_dt=-1)
+        if snapshot_dt == -1
+            snapshot_dt = dt
+        end
+        return new(numparticles, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate, starttime, randomstarts, snapshot_dt)
     end
     function # Inner constructor for dictionary input
         SimulationParameters(paramsdict::Dict)
-        return new(paramsdict["numparticles"], paramsdict["totaltime"], paramsdict["dt"], paramsdict["v0"], paramsdict["fliprate"], paramsdict["boxwidth"], paramsdict["interaction"], paramsdict["interactionfliprate"], paramsdict["starttime"], paramsdict["randomstarts"])
+        return new(paramsdict["numparticles"], paramsdict["totaltime"], paramsdict["dt"], paramsdict["v0"], paramsdict["fliprate"], paramsdict["boxwidth"], paramsdict["interaction"], paramsdict["interactionfliprate"], paramsdict["starttime"], paramsdict["randomstarts"], paramsdict["snapshot_dt"])
     end
     function # Inner constructor for null object with all default values
         SimulationParameters()
@@ -87,8 +91,14 @@ function getntimes(simparams::SimulationParameters)::Int64
     return Int64(floor(simparams.totaltime / simparams.dt) + 1)
 end
 
+function getnsaves(simparams::SimulationParameters)::Int64
+    stepsbetweensaves = Int64(round(simparams.snapshot_dt / simparams.dt))
+    nsteps = getntimes(simparams)
+    nsaves = Int64(floor(nsteps / stepsbetweensaves))
+end
+
 function asarray(simparams::SimulationParameters)::Array{Any}
-    ar::Array{Any} = [simparams.numparticles, simparams.totaltime, simparams.dt, simparams.v0, simparams.fliprate, simparams.boxwidth, simparams.interaction, simparams.interactionfliprate, simparams.starttime, simparams.randomstarts]
+    ar::Array{Any} = [simparams.numparticles, simparams.totaltime, simparams.dt, simparams.v0, simparams.fliprate, simparams.boxwidth, simparams.interaction, simparams.interactionfliprate, simparams.starttime, simparams.randomstarts, simparams.snapshot_dt]
     return ar
 end
 
@@ -102,7 +112,8 @@ end
 """
 Returns a copy of the `SimulationParameters` struct object but with `randomstarts` set to false and updated `starttime` and `totaltime`
 """
-function newstarts(simparams::SimulationParameters, timeextension::Float64)::SimulationParameters
+function newstarts(simparams::SimulationParameters, timeextension::Number)::SimulationParameters
+    timeextension = Float64(timeextension)
     # get array of original simparams
     sparray = asarray(simparams)
 

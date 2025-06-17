@@ -36,7 +36,6 @@ end
 
 
 function runsim(simparams::SimulationParameters, startpositions::Union{Array{Float64}, Nothing}=nothing, startspins::Union{Array{Int8}, Nothing}=nothing)::SimulationData
-
     # set initial particle states
     # if no start positions specified, start all at 0
     # if no start spins specified, start all at +1
@@ -61,20 +60,31 @@ function runsim(simparams::SimulationParameters, startpositions::Union{Array{Flo
     times = collect(simparams.starttime:simparams.dt:endtime)
     nsteps = length(times) - 1
 
-    mx::Matrix{Float64} = zeros(nsteps+1, simparams.numparticles)
-    ms::Matrix{Int8} = zeros(nsteps+1, simparams.numparticles)
+    stepsbetweensaves = Int64(round(simparams.snapshot_dt / simparams.dt))
+    nsaves = Int64(floor(nsteps / stepsbetweensaves))
+
+    mx::Matrix{Float64} = zeros(nsaves+1, simparams.numparticles)
+    ms::Matrix{Int8} = zeros(nsaves+1, simparams.numparticles)
 
     mx[1,:] = copy(currpositions)
     ms[1,:] = copy(currspins)
 
     # run simulation `nsims` times
-    @showprogress 1 "Loading..." for i in 1:nsteps
-    # for i in 1:nsteps
+    stepsuntilsave = stepsbetweensaves
+    saves = 1
+    @showprogress 1 "Running Simulation (N=$(simparams.numparticles), nsteps=$(nsteps))..." for i in 1:nsteps
 
         runstep!(currpositions, currspins, simparams)
 
-        mx[i+1,:] = copy(currpositions)
-        ms[i+1,:] = copy(currspins) 
+        stepsuntilsave -= 1
+
+        if stepsuntilsave == 0
+            mx[saves+1,:] = copy(currpositions)
+            ms[saves+1,:] = copy(currspins)
+
+            stepsuntilsave = stepsbetweensaves
+            saves += 1
+        end
     end
 
     simdata = SimulationData(simparams, times, mx, ms)
