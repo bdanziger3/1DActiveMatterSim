@@ -263,7 +263,7 @@ function savesim(simdata::SimulationData, outputfilename::String, filetype::Data
             println(io, csv_serialize(simdata.simparams))
             println(io, "Particle States ([positions], [spins])")
             # construct particle state matrix by concatenating states of position and spin
-            particlestates::Matrix{Any} = zeros(getntimes(simdata.simparams), 2 * simdata.simparams.numparticles)
+            particlestates::Matrix{Any} = zeros(getnsaves(simdata.simparams), 2 * simdata.simparams.numparticles)
             particlestates[:,1:simdata.simparams.numparticles] = simdata.positions
             particlestates[:,simdata.simparams.numparticles+1:end] = simdata.spins
             writedlm(io, particlestates, ",")

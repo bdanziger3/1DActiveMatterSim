@@ -92,9 +92,7 @@ function getntimes(simparams::SimulationParameters)::Int64
 end
 
 function getnsaves(simparams::SimulationParameters)::Int64
-    stepsbetweensaves = Int64(round(simparams.snapshot_dt / simparams.dt))
-    nsteps = getntimes(simparams)
-    nsaves = Int64(floor(nsteps / stepsbetweensaves))
+    return Int64(floor(simparams.totaltime / simparams.snapshot_dt) + 1)
 end
 
 function asarray(simparams::SimulationParameters)::Array{Any}

@@ -19,12 +19,12 @@ boxwidth::Real = 1
 fliprate::Real = 1
 v0::Real = 1
 dt::Real = 1e-4
-totaltime::Real = .005
+totaltime::Real = .05
 interaction = alignsimple
 interactionfliprate = 300
 randomstarts = true
-# snapshot_dt = 1e-2
-simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate, 0, randomstarts, -1)
+snapshot_dt = 1e-2
+simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate, 0, randomstarts, snapshot_dt)
 
 
 
@@ -35,7 +35,7 @@ simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, inter
 
 simdata = runsim(simparams)
 
-savesim(simdata, "$(data_dir)/16-6/N$(N)-$(interaction)-t$(totaltime).txt", rowwisetxt, true)
+savesim(simdata, "$(data_dir)/18-6/N$(N)-$(interaction)-t$(totaltime)-sn$(snapshot_dt).txt", rowwisetxt)
 
 # savesim(simdata, "1basic_N$(N)_t$(floor(totaltime / dt))_align_T$(fliprate)_sim", sequentialtxt)
 # savesim(simdata, "testnewserial", sequentialtxt, true)

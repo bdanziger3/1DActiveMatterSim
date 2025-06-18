@@ -61,7 +61,7 @@ function runsim(simparams::SimulationParameters, startpositions::Union{Array{Flo
     nsteps = length(times) - 1
 
     stepsbetweensaves = Int64(round(simparams.snapshot_dt / simparams.dt))
-    nsaves = Int64(floor(nsteps / stepsbetweensaves))
+    nsaves = getnsaves(simparams) - 1
 
     mx::Matrix{Float64} = zeros(nsaves+1, simparams.numparticles)
     ms::Matrix{Int8} = zeros(nsaves+1, simparams.numparticles)
