@@ -48,8 +48,7 @@ class SimulationParameters:
         return int(np.floor(self._total_time / self._dt) + 1)
     
     def get_nsaves(self) -> int:
-        steps_between_saves = int(np.round(self._snapshot_dt / self._dt))
-        return int(np.floor(self.get_ntimes() / steps_between_saves))
+        return int(np.floor(self._total_time / self._snapshot_dt) + 1)
     
     def as_array(self) -> list:
         return [self._num_particles, self._total_time, self._dt, self._v0, self._flip_rate, self._box_width, self._interaction, self._interaction_fliprate, self._start_time, self._random_starts, self._snapshot_dt]

@@ -64,7 +64,7 @@ def loadsim(input_fn:str, file_type:DataFileType=DataFileType.ROWWISE_TXT) -> Si
         sim_param_info = fn.readline()
         sim_param_info_list = string_list_to_number_list(sim_param_info, out_type=SimulationParameters.expected_types)
         sim_params:SimulationParameters = SimulationParameters.construct_from_list(sim_param_info_list)
-        ntimes = sim_params.get_ntimes()
+        ntimes = sim_params.get_nsaves()
             
         # now read through the data in the order: [[positions], [spins]]
         line = fn.readline()
@@ -97,7 +97,7 @@ def loadsim(input_fn:str, file_type:DataFileType=DataFileType.ROWWISE_TXT) -> Si
         sim_param_info = fn.readline()
         sim_param_info_list = string_list_to_number_list(sim_param_info, out_type=SimulationParameters.expected_types)
         sim_params:SimulationParameters = SimulationParameters.construct_from_list(sim_param_info_list)
-        ntimes = sim_params.get_ntimes()
+        ntimes = sim_params.get_nsaves()
             
         # now read through the data in the order: [positions, spins]
         line = fn.readline()
@@ -171,7 +171,7 @@ def loadsim_n_lines(input_fn:str, start_line:int, n_lines:int, file_type:DataFil
         print(sim_param_info)
         print(sim_param_info_list)
         sim_params:SimulationParameters = SimulationParameters.construct_from_list(sim_param_info_list)
-        ntimes = sim_params.get_ntimes()
+        ntimes = sim_params.get_nsaves()
             
         line = fn.readline()
         assert "particle states" in line.lower(), "ROWWISE_TXT  file does not have correct `Particle States` header. File may be corrupted."

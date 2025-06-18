@@ -79,7 +79,7 @@ function loadsim(inputfilename::String, filetype::DataFileType)::SimulationData
         # read next line to get number of position data points
         simparaminfo_str = readline(file)
         simparams = SimulationParameters(simparaminfo_str)
-        ntimes = getntimes(simparams)
+        ntimes = getnsaves(simparams)
             
         # now read through the data in the order: [[positions], spins]]
         line = readline(file)
@@ -119,7 +119,7 @@ function loadsim(inputfilename::String, filetype::DataFileType)::SimulationData
         # read next line to get number of position data points
         simparaminfo_str = readline(file)
         simparams = SimulationParameters(simparaminfo_str)
-        ntimes = getntimes(simparams)
+        ntimes = getnsaves(simparams)
             
         # now read through the data in the order: [positions, wrappedpositions, spins]
         line = readline(file)
@@ -190,7 +190,7 @@ function loadsim_nlines(inputfilename::String, startline::Int, nlines::Int, file
     # read next line to get number of position data points
     simparaminfo_str = readline(file)
     simparams = SimulationParameters(simparaminfo_str)
-    ntimes = getntimes(simparams)
+    ntimes = getnsaves(simparams)
         
     # now read through the data in the order: [[positions], spins]]
     line = readline(file)
@@ -293,7 +293,6 @@ function appendsim(simdata::SimulationData, outputfilename::String)
         println(io, csv_serialize(simdata.simparams))
         println(io, "Particle States ([positions], [spins])")
         # construct particle state matrix by concatenating states of position and spin
-        # particlestates::Matrix{Any} = zeros(getntimes(simdata.simparams), 2 * simdata.simparams.numparticles)
         particlestates::Matrix{Any} = zeros(getnsaves(simdata.simparams, simdata.simparams.dt), 2 * simdata.simparams.numparticles)
         particlestates[:,1:simdata.simparams.numparticles] = simdata.positions
         particlestates[:,simdata.simparams.numparticles+1:end] = simdata.spins
