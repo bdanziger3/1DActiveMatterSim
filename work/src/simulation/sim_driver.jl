@@ -22,7 +22,7 @@ v0::Real = 1
 dt::Real = 1e-4
 totaltime::Real = .5
 interaction = alignsimple
-interactionfliprate = 10
+interactionfliprate = 150
 randomstarts = true
 snapshot_dt = 1e-2
 simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate, 0, randomstarts, snapshot_dt)
@@ -38,7 +38,11 @@ simdata = runsim(simparams)
 
 savesim(simdata, data_file, rowwisetxt)
 
-println("Saved first 1s at $(now())")
+println("Saved first 0.5s at $(now())")
+
+extended_sd = extendsim(data_file, totaltime)
+appendsim(extended_sd, data_file)
+println("Saved extended sim 1 at $(now())")
 
 # for i in 1:4
 #     extended_sd = extendsim(data_file, totaltime/2)

@@ -1,20 +1,17 @@
 include("../simulation/basic_sim.jl")
 # include("../sim÷ulation/sim_structs.jl")
 
-using StringEncodings
-
 using JSON
 using Dates
 
 @enum Serialisation utf8 ascii128 none
 
-UTF8BITS::Int8 = 20
-ASCIIBITS::Int8 = 6
+const UTF8BITS::Int8 = 20
+const ASCIIBITS::Int8 = 6
 
-ASCIICHARS = UInt8(94)
-ASCIIMININT = 40
+const ASCIIMININT = 40
 
-BITSDICT::Dict{Serialisation, Int8} = Dict(utf8 => UTF8BITS, ascii128 => ASCIIBITS)
+const BITSDICT::Dict{Serialisation, Int8} = Dict(utf8 => UTF8BITS, ascii128 => ASCIIBITS)
 
 """
 Calculate the total number of encoding characters each of width `encodingbits` needed to encode the data that is of size `databits`.

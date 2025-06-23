@@ -34,6 +34,10 @@ class SimulationParameters:
         end_time = self._start_time + self._total_time
         return np.arange(self._start_time, end_time, self._dt)
 
+    def get_save_times(self) -> np.ndarray[float]:
+        end_time = self._start_time + self._total_time
+        return np.arange(self._start_time, end_time+self._snapshot_dt, self._snapshot_dt)
+
     def csv_serialize(self) -> str:
         return f"{self._num_particles},{self._total_time},{self._dt},{self._v0},{self._flip_rate},{self._box_width},{self._start_time}"
 

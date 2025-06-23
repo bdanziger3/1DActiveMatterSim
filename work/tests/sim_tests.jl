@@ -40,10 +40,10 @@ function test_extendsim()
     filestring = "./test_data/test_extendsim_sd1"
     file1 = "$(filestring).txt"
     file2 = "$(filestring)_ext.txt"
-    savesim(sd1, file1, rowwisetxt)
+    savesim(sd1, file1, rowwisetxt, true)
     
     sd2 = extendsim(file1, timeextension)
-    savesim(sd2, file2, rowwisetxt)
+    savesim(sd2, file2, rowwisetxt, true)
 
     # check params
     @assert sd2.simparams.starttime == sd1.simparams.totaltime

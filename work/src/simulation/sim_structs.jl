@@ -100,6 +100,10 @@ function getnsaves(simparams::SimulationParameters)::Int64
     return Int64(floor(simparams.totaltime / simparams.snapshot_dt) + 1)
 end
 
+function getindexoftime(simparams::SimulationParameters, time::Float64)::Int64
+    return Int64(round((time - simparams.starttime) / simparams.snapshot_dt))
+end
+
 function asarray(simparams::SimulationParameters)::Array{Any}
     ar::Array{Any} = [simparams.numparticles, simparams.totaltime, simparams.dt, simparams.v0, simparams.fliprate, simparams.boxwidth, simparams.interaction, simparams.interactionfliprate, simparams.starttime, simparams.randomstarts, simparams.snapshot_dt]
     return ar

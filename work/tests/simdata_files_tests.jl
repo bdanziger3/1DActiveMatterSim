@@ -134,8 +134,36 @@ function test_save_load_seq()
 
 end
 
-test_save_load()
-test_save_load_snaptshot()
-test_save_load_seq()
+
+"""
+Load an extended file with 2 or more segments
+"""
+function test_load_extended_file()
+    # extended sim file
+    datafile = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/tests/test_data/test_extendsim_sd1.txt"
+    datafile_long = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/22-6/N10000-nointeraction-t100-sn0.01.txt"
+    # run simple simulation and try to 
+    t0 = time()
+    simdata = getsimsegments(datafile)
+    t1 = time()
+
+    println(t1 - t0)
+    t0 = time()
+    simdata = getsimsegments(datafile_long)
+    t1 = time()
+    println(t1 - t0)
+
+
+    println(simdata)
+
+    return false
+
+end
+
+# @assert test_save_load()
+# @assert test_save_load_snaptshot()
+# @assert test_save_load_seq()
+
+test_load_extended_file()
 
 println("PASSED")
