@@ -94,34 +94,58 @@ end
 
 function ocf_test()
 
-    test_interaction_file = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/22-6/N10000-alignsimple-t1-sn0.01.txt"
+    LOG = true
+
+    nparticles = 10000
+
+    test_interaction_file_300 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/22-6/N10000-alignsimple-t1-sn0.01.txt"
+    test_interaction_file_150 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/23-6/N10000-alignsimple-150-t0.5-sn0.01.txt"
+    test_interaction_file_60 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/23-6/N10000-alignsimple-t0.5-sn0.01.txt"
+    test_interaction_file_30 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/23-6/N10000-alignsimple-t0.5-sn0.01_0.txt"
+    test_interaction_file_10 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/23-6/N10000-alignsimple-10-t0.5-sn0.01.txt"
     test_no_interaction_file = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/22-6/N10000-nointeraction-t1-sn0.01.txt"
 
-    simdata = loadsim(test_interaction_file, rowwisetxt)
-    simdata_no_interaction = loadsim(test_no_interaction_file, rowwisetxt)
+    interactionfliprates = [0, 10, 30, 60, 150, 300]
+    legendlabels = string.(interactionfliprates)
+
+    data_files = [test_no_interaction_file, test_interaction_file_10, test_interaction_file_30, test_interaction_file_60, test_interaction_file_150, test_interaction_file_300]
+
+    for file in data_files
+        simdata = loadsim(file, rowwisetxt)
     
-    # analyze correlation
-    ocdmat = orientationcorrelation(simdata)
-    ocdmat_no_interaction = orientationcorrelation(simdata_no_interaction)
+        # analyze correlation
+        ocdmat = orientationcorrelation(simdata, 0.25)
     
-    println(ocdmat)
-    println(ocdmat_no_interaction)
+        # println(ocdmat)
     
-    # handle plotting
-    
-    
-    plt.plot(ocdmat[1,1:end], ocdmat[2,1:end])
-    plt.plot(ocdmat_no_interaction[1,1:end], ocdmat_no_interaction[2,1:end])
-    plt.title("Orientation Correlatin\n10 Particles\ntmax = 10")
+        # handle plotting
+        if LOG
+            plt.plot(ocdmat[1,1:25], log.(ocdmat[2,1:25]))
+        else
+            plt.plot(ocdmat[1,1:25], ocdmat[2,1:25])
+        end
+    end
+
+    plt.title("Orientation Correlatin\n$(nparticles) Particles\ntmax = 0.5")
     plt.xlabel("dt")
     plt.ylabel("Orientation Correlation")
-    plt.ylim([-1,1])
+    plt.legend(legendlabels)
 
+    if LOG
+        plt.ylim([-1.5,0])
+    else
+        plt.ylim([0,1])
+    end
 
-
+    plotfilepath::String = ""
+    if LOG
+        plotfilepath = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/correlation_data/N10000-ocf-logplot.pdf"
+    else
+        plotfilepath = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/correlation_data/N10000-ocf.pdf"
+    end
 
     # plt.savefig(plotfilepath, bbox_inches = "tight",pad_inches=0.01)
-    plt.show()
+    # plt.show()
 
 
 end

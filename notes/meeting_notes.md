@@ -92,3 +92,26 @@ to analyze:
 Active matter community usually using assumption that particles are in an overdamped system (like a thick fluid) where the passive particles will want slow down to $v=0$. But active particles are accelerating instantaneously to $v_0$
 
 
+
+
+# 23 June
+
+- Would be interesting to plot one particle in a simulation and see if it is staying in a band or flipping
+
+- Look at average spin (polar order with sign)
+
+- Try making boxwidth bigger to see how that effects simulations when spacial correlation is less
+
+- Also look at mean squared displacement
+
+- Longer simulations
+
+- also account for box edge for nearest neighbor search
+
+
+
+## Paper
+
+- Write a general literature overview and send to Till next week. Talk about what people are doing in the field and what people are looking for. Talk about what system I am trying to look at
+
+- Till can meet between 10:20 and 13:00 next week
