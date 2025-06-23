@@ -20,10 +20,11 @@ PLOT_DOT_SIZE = 300
 
 DEBUG_MODE_SHORT_NFRAMES = 5
 
-SAVE = False
+SAVE = True
 SHOW = True
 INTERACTION = "None"
-save_filepath = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/16-6/N10000-alignsimple-t0.5_smalldots.mp4"
+
+save_filepath_0 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/16-6/N10000-alignsimple-t0.5_smalldots.mp4"
 
 N3_rand = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N3-alignsimple_rand_simdata.txt"
 N100_rand = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/6-6/5-6-N100-alignsimple_rand_simdata.txt"
@@ -43,16 +44,17 @@ example_align_intearaction_sim2 = "/Users/blakedanziger/Documents/Grad/MSc Theor
 
 new_rowwise = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/16-6/N10000-alignsimple-t0.5.txt"
 new_rowwise_short = "work/data/16-6/N1000-alignsimple-t0.005.txt"
+new_rowwise_sn = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/18-6/N10000-alignsimple-t0.05-sn0.01.txt"
 
 
 def print_save_progress(current_frame: int, total_frames: int):
-    pct_frames = total_frames // 100
+    pct_frames = max(1, total_frames // 100)
     if current_frame % pct_frames == 0:
         print(f"\033[KRendering Progress: {np.round(100 * current_frame / total_frames, 2)} %", end="\r")
     if (total_frames - current_frame) / total_frames < .3: 
         print(f"\033[KSaving File...", end="\r")
 
-def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 30, y_offset=False, debug_mode=None):    
+def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 30, y_offset=False, save_filepath=None, debug_mode=None):    
     
     # load data from file
     if debug_mode is None:
@@ -125,6 +127,9 @@ def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 3
                         init_func=sim_init, blit=True, interval=1000/anim_fps)
     
     if save:
+        if save_filepath is None:
+            in_file_prefix = file_str[:-4]
+            save_filepath = f"{in_file_prefix}.mp4"
         if save_filepath.endswith(".mp4"):
             save_filepath_pre = save_filepath[:-4]
             save_filepath_gif = f"{save_filepath_pre}.gif"
@@ -144,6 +149,7 @@ def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 3
 
 
 
-# sim_animate(new_rowwise, SHOW, SAVE, fps=600, y_offset=True, debug_mode="short")
-sim_animate(new_rowwise_short, SHOW, SAVE, fps=600, y_offset=True)
+sim_animate(new_rowwise, SHOW, SAVE, fps=600, y_offset=True, debug_mode="short")
+# sim_animate(new_rowwise_short, SHOW, SAVE, fps=600, y_offset=True)
+# sim_animate(new_rowwise_sn, SHOW, SAVE, fps=600, y_offset=True)
 # sim_animate(example_align_intearaction_sim, SHOW, SAVE)

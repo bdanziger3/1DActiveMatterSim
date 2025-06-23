@@ -1,4 +1,5 @@
 using CSV
+using Dates
 
 include("./basic_sim.jl")
 include("../file_management/simdata_files.jl")
@@ -19,9 +20,9 @@ boxwidth::Real = 1
 fliprate::Real = 1
 v0::Real = 1
 dt::Real = 1e-4
-totaltime::Real = .05
+totaltime::Real = .5
 interaction = alignsimple
-interactionfliprate = 300
+interactionfliprate = 10
 randomstarts = true
 snapshot_dt = 1e-2
 simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate, 0, randomstarts, snapshot_dt)
@@ -30,12 +31,25 @@ simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, inter
 
 # nsims = 15
 
-# extendsim("/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/saveas_rwt.txt_simdata.txt", 10)
 
+data_file = "$(getdatedir())/N$(N)-$(interaction)-$(interactionfliprate)-t$(totaltime)-sn$(snapshot_dt).txt"
 
 simdata = runsim(simparams)
 
-savesim(simdata, "$(data_dir)/18-6/N$(N)-$(interaction)-t$(totaltime)-sn$(snapshot_dt).txt", rowwisetxt)
+savesim(simdata, data_file, rowwisetxt)
+
+println("Saved first 1s at $(now())")
+
+# for i in 1:4
+#     extended_sd = extendsim(data_file, totaltime/2)
+#     appendsim(extended_sd, data_file)
+#     println("Saved extended sim $(i) at $(now())")
+# end
+
+
+
+
+
 
 # savesim(simdata, "1basic_N$(N)_t$(floor(totaltime / dt))_align_T$(fliprate)_sim", sequentialtxt)
 # savesim(simdata, "testnewserial", sequentialtxt, true)

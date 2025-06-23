@@ -87,6 +87,11 @@ function gettimes(simparams::SimulationParameters)::Array{Float64}
     return collect(simparams.starttime:simparams.dt:endtime)
 end
 
+function getsavetimes(simparams::SimulationParameters)::Array{Float64}
+    endtime = simparams.starttime + simparams.totaltime
+    return collect(simparams.starttime:simparams.snapshot_dt:endtime)
+end
+
 function getntimes(simparams::SimulationParameters)::Int64
     return Int64(floor(simparams.totaltime / simparams.dt) + 1)
 end

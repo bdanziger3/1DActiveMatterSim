@@ -160,7 +160,7 @@ function ocf(simdata::SimulationData)::Matrix{Float64}
     ntimes = getntimes(simdata.simparams)
     spins = copy(simdata.spins)
 
-    mintimestep::Float64 = simdata.simparams.dt
+    mintimestep::Float64 = simdata.simparams.snapshot_dt
     maxtimestep::Float64 = simdata.simparams.totaltime / 2
     dtarray::Array{Float64} = collect(mintimestep:mintimestep:maxtimestep)
     ndts::Int64 = size(dtarray)[1]

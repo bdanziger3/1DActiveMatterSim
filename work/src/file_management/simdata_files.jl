@@ -24,7 +24,7 @@ function getfirstsaveddate(filename::String)
     return saveddate
 end
 
-function checkfilename(outputfilename::String)
+function checkfilename(outputfilename::String)::String
     if isfile(outputfilename)
         saveddate::DateTime = getfirstsaveddate(outputfilename)
         println("Overwrite $(outputfilename) with simulation data saved at $(saveddate)? Y/N ")
@@ -45,6 +45,26 @@ function checkfilename(outputfilename::String)
 
     # Use original name if file doesn't exist or user confirms overwrite
     return outputfilename
+end
+
+"""
+Checks if data directory exists for the specified date. If not, makes the directory. Returns the dir name
+
+By default checks for the current date.
+"""
+function getdatedir(date::Date=today(), currdir::String=pwd())
+    while basename(currdir) != "work"
+        currdir = dirname(currdir)
+    end
+
+    newdirname = "$(currdir)/data/$(Dates.day(date))-$(Dates.month(date))"
+    if !isdir(newdirname)
+        # if dir doesn't exist, make it and return the name
+        mkdir(newdirname)
+    end
+
+    return newdirname
+
 end
 
 function loadsim(inputfilename::String, filetype::DataFileType)::SimulationData
@@ -293,10 +313,45 @@ function appendsim(simdata::SimulationData, outputfilename::String)
         println(io, csv_serialize(simdata.simparams))
         println(io, "Particle States ([positions], [spins])")
         # construct particle state matrix by concatenating states of position and spin
-        particlestates::Matrix{Any} = zeros(getnsaves(simdata.simparams, simdata.simparams.dt), 2 * simdata.simparams.numparticles)
+        particlestates::Matrix{Any} = zeros(getnsaves(simdata.simparams), 2 * simdata.simparams.numparticles)
         particlestates[:,1:simdata.simparams.numparticles] = simdata.positions
         particlestates[:,simdata.simparams.numparticles+1:end] = simdata.spins
         writedlm(io, particlestates, ",")
     end
 end
 
+
+
+"""
+Saves simulation data from a `SimulationData` object to a data file.
+
+Can specify the output file type with `filetype`.
+
+By default, asks for confirmation if overwriting an existing file.
+Set `forceclear` to `true` to clear the file without warning.
+
+"""
+function savesim_compressed(simdata::SimulationData, outputfilename::String, filetype::DataFileType=rowwisetxt, forceclear::Bool=false)         
+    # Ask to confirm if overwriting existing file
+    if !forceclear
+        filenametouse = checkfilename(outputfilename)
+    else
+        filenametouse = outputfilename
+    end
+    
+    @assert filetype == rowwisetxt "Can only compress `roweisetxt` files."
+    
+    open(filenametouse, "w") do io
+        println(io, "Row Wise txt")  # Row Wise .txt
+        println(io, "Saved at $(round(now(), Dates.Second(1)))")  # Timestamp
+        println(io, "Simulation Parameters")
+        println(io, csv_serialize(simdata.simparams))
+        println(io, "Particle States ([positions], [spins])")
+        # construct relative particle state matrix by concatenating states of position and spin
+        particlestates::Matrix{Any} = zeros(getnsaves(simdata.simparams), 2 * simdata.simparams.numparticles)
+        particlestates[:,1:simdata.simparams.numparticles] = simdata.positions
+        particlestates[:,simdata.simparams.numparticles+1:end] = simdata.spins
+        writedlm(io, particlestates, ",")
+    end
+
+end
