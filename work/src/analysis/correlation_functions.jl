@@ -152,7 +152,7 @@ Calculates the average Correlation between a particle's orientation and its orie
 
 Returns a matrix givng (t,C_p(t)) data
 """
-function ocf(simdata::SimulationData)::Matrix{Float64}
+function orientationcorrelation(simdata::SimulationData, settletime::Float64=-1.0)::Matrix{Float64}
     # returns the Orientation Corelation as a function of time throughout one simulation
 
 
@@ -160,6 +160,14 @@ function ocf(simdata::SimulationData)::Matrix{Float64}
     ntimes = getntimes(simdata.simparams)
     spins = copy(simdata.spins)
 
+    # if no `settletime` provided, defaults to half of the total time
+    if settletime == -1.0
+        settletime = simdata.simparams.totaltime / 2
+    end
+
+    # find step number corresponding to settletime
+    settleindex = getindexoftime(simdata.simparams, settletime)
+        
     mintimestep::Float64 = simdata.simparams.snapshot_dt
     maxtimestep::Float64 = simdata.simparams.totaltime / 2
     dtarray::Array{Float64} = collect(mintimestep:mintimestep:maxtimestep)
@@ -168,25 +176,15 @@ function ocf(simdata::SimulationData)::Matrix{Float64}
     ocmat::Matrix{Float64} = zeros(2, ndts+1)
 
     dt = mintimestep
-    t0 = 1
+    t0 = settleindex
 
     # evaluate for each interval dt, incremented by number of `mintimestep`s 
     for ndt in 0:ndts
         
-        # for now only calc at one t0
         t0ocsum = 0
 
-        # average over all particles
-        particleocsum = 0
-        for n in 1:simdata.simparams.numparticles
-            particleocsum += (spins[t0+ndt, n] * spins[t0, n])
-        end
-        particleocsum /= simdata.simparams.numparticles
 
-        t0ocsum += particleocsum
-
-        
-
+        t0ocsum += sum(simdata.spins[t0, :] .* simdata.spins[t0+ndt, :]) / simdata.simparams.numparticles
 
         ocmat[1, ndt+1] = ndt * mintimestep
         ocmat[2, ndt+1] = t0ocsum

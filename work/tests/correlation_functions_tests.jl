@@ -1,8 +1,8 @@
 using PyPlot
 using PyCall
 
-include("../corelation_functions.jl")
-include("../simdata_files.jl")
+include("../src/analysis/correlation_functions.jl")
+include("../src/file_management/simdata_files.jl")
 
 # run basic sim
 
@@ -93,36 +93,35 @@ end
 
 
 function ocf_test()
-    # open simdata
-    
-    # simplesim_datafile = "../txt_data_files/basic_N10_t1000.0_noint_T1_sim_simdata.txt"
-    # plotfilepath = "../plot_outputs/Apr25/OCF_N10_t100_T1_noint.pdf"
-    
-    # simplesim_datafile = "../txt_data_files/basic_N100_t1000_noint_sim_simdata.txt"
-    # plotfilepath = "../plot_outputs/Apr25/OCF_N100_t1000_T1_noint.pdf"
-    
-    # simplesim_datafile = "../txt_data_files/basic_N1000_t10000_noint_sim_simdata.txt"
-    # plotfilepath = "../plot_outputs/Apr25/OCF_N1000_t10000_T1_noint.pdf"
 
-    simdata = loadsim(simplesim_datafile, sequentialtxt)
+    test_interaction_file = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/22-6/N10000-alignsimple-t1-sn0.01.txt"
+    test_no_interaction_file = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/22-6/N10000-nointeraction-t1-sn0.01.txt"
 
+    simdata = loadsim(test_interaction_file, rowwisetxt)
+    simdata_no_interaction = loadsim(test_no_interaction_file, rowwisetxt)
+    
     # analyze correlation
-    ocdmat = ocf(simdata)
-
-    # handle plotting
-
+    ocdmat = orientationcorrelation(simdata)
+    ocdmat_no_interaction = orientationcorrelation(simdata_no_interaction)
     
-
-
-    plt.plot(ocdmat[1,2:end], ocdmat[2,2:end])
+    println(ocdmat)
+    println(ocdmat_no_interaction)
+    
+    # handle plotting
+    
+    
+    plt.plot(ocdmat[1,1:end], ocdmat[2,1:end])
+    plt.plot(ocdmat_no_interaction[1,1:end], ocdmat_no_interaction[2,1:end])
     plt.title("Orientation Correlatin\n10 Particles\ntmax = 10")
     plt.xlabel("dt")
     plt.ylabel("Orientation Correlation")
     plt.ylim([-1,1])
 
 
-    plt.savefig(plotfilepath, bbox_inches = "tight",pad_inches=0.01)
-    # plt.show()
+
+
+    # plt.savefig(plotfilepath, bbox_inches = "tight",pad_inches=0.01)
+    plt.show()
 
 
 end
