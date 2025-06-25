@@ -1,14 +1,6 @@
 using CSV
 
-include("../src/simulation/basic_sim.jl")
-include("../src/file_management/simdata_files.jl")
-# include("./plot_lib.jl")
-# include("./activesim1d.jl")
-
-# import ActiveSim1D
-# using ActiveSim1D
-
-data_dir = "./work/data"
+include("./test_fixtures.jl")
 
 
 # println(length(simdata.positions[:,1]))
@@ -33,34 +25,44 @@ simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, inter
 2. Reload the saved data and extend it
 3. Combine the two data structs and append the files together
 """
-function test_extendsim()
+function test_extendsim(nsegments::Int=2)
+    @assert nsegments >= 2 "Test only works for 2 or more segments."
+
     timeextension = .0005
-    sd1 = runsim(simparams)
+    sd1 = runsim(simparams_10)
+    sdlist::Array{SimulationData} = Array{SimulationData}[]
+    push!(sdlist, sd1)
 
     filestring = "./test_data/test_extendsim_sd1"
     file1 = "$(filestring).txt"
-    file2 = "$(filestring)_ext.txt"
     savesim(sd1, file1, rowwisetxt, true)
     
-    sd2 = extendsim(file1, timeextension)
-    savesim(sd2, file2, rowwisetxt, true)
+    # extend segments to get to `nsegments` total segments
+    for s in 2:nsegments
+        file_s = "$(filestring)_ext_$(s).txt"
+        sd2 = extendsim(file1, timeextension)
+        savesim(sd2, file_s, rowwisetxt, true)
+        appendsim(sd2, file1)
+        push!(sdlist, sd2)
 
-    # check params
-    @assert sd2.simparams.starttime == sd1.simparams.totaltime
-    @assert sd2.simparams.totaltime == timeextension
-    @assert sd2.simparams.randomstarts == false
+        # check params
+        @assert sdlist[s].simparams.starttime == sdlist[s-1].simparams.totaltime
+        @assert sdlist[s].simparams.totaltime == timeextension
+        @assert sdlist[s].simparams.randomstarts == false
+    
+        sp1 = asarray(sd1.simparams)
+        sp2 = asarray(sd2.simparams)
 
-    sp1 = asarray(sd1.simparams)
-    sp2 = asarray(sd2.simparams)
-
-    @assert sp1[1] == sp2[1]
-    for i in 3:8
-        @assert sp1[i] == sp2[i]
+        @assert sp1[1] == sp2[1] "Sim Params of segment $(s) don't match the original for `$(fieldnames(SimulationParameters)[1])`."
+        for i in 3:8
+            @assert sp1[i] == sp2[i] "Sim Params of segment $(s) don't match the original for `$(fieldnames(SimulationParameters)[i])`."
+        end
+    
     end
-
-
-    appendsim(sd2, file1)
 end
 
 
-test_extendsim()
+test_extendsim(2)
+
+
+println("PASSED")

@@ -126,7 +126,7 @@ function newstarts(simparams::SimulationParameters, timeextension::Number)::Simu
 
     # update `totaltime` and `starttime`
     sparray[2] = timeextension
-    sparray[9] = simparams.totaltime
+    sparray[9] += simparams.totaltime
 
     # change `randomstarts` to `false`
     sparray[10] = false

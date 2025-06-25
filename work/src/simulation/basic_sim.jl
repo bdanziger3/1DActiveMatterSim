@@ -93,7 +93,7 @@ end
 
 
 function extendsim(inputfilename::String, time::Number)::SimulationData
-    finalstate::SimulationData = loadsim_nlines(inputfilename, -1, 1)
+    finalstate::SimulationData = loadsimlastline(inputfilename)
     # get final state of existing file
 
     newsimparams = newstarts(finalstate.simparams, time)

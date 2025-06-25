@@ -132,8 +132,7 @@ function getsimsegments(inputfilename::String)
     # close file
     close(file)
 
-    simdata = SimulationData(simparams, getsavetimes(simparams), posmatrix, spinsmatrix)
-    return simdata
+    return simstarts, simsaves, simtimes, simdates
 end
 
 
@@ -141,24 +140,33 @@ end
 Gets the simdata of the nth segment of a data file.
 
 `segment_n` is indexed at 1
+
+if enter `segment_n` as a negative number to get that many segments from the end.
+`segment_n=-1` returns the last segment in the file 
 """
-function loadnthsimsegment(inputfilename::String, segment_n::Int, startlines::Array{Int}=nothing)
+function loadnthsimsegment(inputfilename::String, segment_n::Int, startlines::Union{Nothing, Array{Int}}=nothing)
     # initialize parameters and matrices        
     if isnothing(startlines)
         startlines = getsimsegments(inputfilename)[1]
     end
 
-    startline::Int64 = startlines[segment_n]
+    # if `segment_n is negative, count from the back`
+    if segment_n <= -1
+        segment_n = length(startlines) + segment_n + 1
+    end
 
+    startline::Int64 = startlines[segment_n]
 
     # read file
     file = open(inputfilename, "r")
 
     # skip to first particle state line in the desired segment
-    linestoskip = startline - 3
-        for _ in 1:linestoskip
-            readline(file)
-        end
+    linestoskip = startline - SEGMENT_HEADER_LINES
+    for _ in 1:linestoskip
+        readline(file)
+    end
+    line = readline(file)
+    @assert contains(lowercase(line), "simulation parameters") "Segment does not have 'Simulation Parameters' header. File may be corrupted."
 
     # read next line to get simulation params
     simparaminfo_str = readline(file)
@@ -182,7 +190,65 @@ function loadnthsimsegment(inputfilename::String, segment_n::Int, startlines::Ar
     
     # close file
     close(file)
-    return simstarts, simsaves, simtimes, simdates, simstarts
+
+    simdata = SimulationData(simparams, getsavetimes(simparams), posmatrix, spinsmatrix)
+    return simdata
+end
+
+function loadsimlastline(inputfilename::String, segmentstartlines::Union{Nothing, Array{Int}}=nothing)::SimulationData
+"""
+Loads the final state of the final segment of a data file.
+"""
+    # initialize parameters and matrices        
+    if isnothing(segmentstartlines)
+        segmentstartlines = getsimsegments(inputfilename)[1]
+    end
+    lastsegmentstartline::Int64 = segmentstartlines[end]
+
+    # read file
+    file = open(inputfilename, "r")
+
+    # skip to simulation params of last segment
+    linestoskip = lastsegmentstartline - SEGMENT_HEADER_LINES
+    for _ in 1:linestoskip
+        readline(file)
+    end
+    line = readline(file)
+    @assert contains(lowercase(line), "simulation parameters") "Segment does not have 'Simulation Parameters' header. File may be corrupted."
+    
+    # read next line to get number of position data points
+    simparaminfo_str = readline(file)
+    simparams = SimulationParameters(simparaminfo_str)
+    nsaves = getnsaves(simparams)
+        
+    # now read through the data in the order: [[positions], spins]]
+    line = readline(file)
+    @assert contains(lowercase(line), "particle states") "Rowwisetxt data file does not have correct `Particle States` header. File may be corrupted."
+    
+    # positions and spins
+
+    # skip to last line
+    linestoskip = nsaves - 1
+    
+    for _ in 1:linestoskip
+        readline(file)
+    end
+
+    # read in only one line of data from file
+    posmatrix::Matrix{Float64} = zeros(1, simparams.numparticles)
+    spinsmatrix::Matrix{Int8} = zeros(1, simparams.numparticles)
+    
+    dataline = readline(file)
+    particle_data::Array{Float64} = parse.(Float64, split(dataline, ","))
+    posmatrix[1,:] = copy(particle_data[1:simparams.numparticles])
+    spinsmatrix[1,:] = Int8.(copy(particle_data[simparams.numparticles+1:end]))
+
+    # close file
+    close(file)
+    
+    # store matrix data as `SimulationData` object and return
+    simdata = SimulationData(simparams, getsavetimes(simparams), posmatrix, spinsmatrix)
+    return simdata
 end
 
 function loadsim(inputfilename::String, filetype::DataFileType)::SimulationData
@@ -298,6 +364,7 @@ Reads only the `nlines` lines of data in a data file starting at line `start_lin
 
 use `startline=-1` to read the last `nlines` lines of the file
 
+Reads from the first segment only.
 """
 function loadsim_nlines(inputfilename::String, startline::Int, nlines::Int, filetype::DataFileType=rowwisetxt)::SimulationData
     # initialize parameters and matrices        
