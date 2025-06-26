@@ -8,9 +8,10 @@ function randlinflip(dt::Real, fliprate::Real)
     return rand() < (dt * fliprate)
 end
 
-function findnn(currpositions::Matrix{<:Real}, particlei::Int)
-    # return indices of left and right neighbors for particle i
-    
+"""
+return indices of left and right neighbors for particle i
+"""
+function findnn(currpositions::Matrix{<:Real}, particlei::Int)    
     nparticles = length(currpositions)
     x_i = currpositions[particlei]
     left = -1
@@ -59,10 +60,23 @@ function alignOn2(simparams::SimulationParameters, currpositions::Matrix{<:Real}
     canflip::Array{Bool} = Array{Bool}(undef, 1, nparticles)
     canflip .= false
 
+    (max_pos, max_pos_i) = findmax(currpositions)
+    (min_pos, min_pos_i) = findmin(currpositions)
+
     # naive approach: check all particles to find nearest neighbors    
     for p_i in 1:nparticles
         # find nearest neighbors of each particle
         neighbors = findnn(currpositions, p_i)
+
+        # if on the edge of the box, use the leftmost or rightmost particle as the neighbor (wrapped around boundary)
+        # if no left neighbor, assign the rightmost particle
+        if neighbors[1] == -1
+            neighbors[1] = max_pos_i
+        end
+        # if no right neighbor, assign the leftmost particle
+        if neighbors[2] == -2
+            neighbors[2] = min_pos_i
+        end
         
         # calculate total spin of all neighboring particles
         spinsum = 0
