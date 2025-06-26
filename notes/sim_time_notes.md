@@ -21,10 +21,31 @@ Size: 117.9 MB
 
 With `snapshot_dt = 1e-2`:
 
+```
 Time: 00:02:38
 Size: 1.4 MB
+```
 
 
 
-# Simulation Data Size Notes
+
+```
+N = 1e3
+boxwidth = 1
+fliprate = 1
+v0 = 1
+dt = 1e-4
+totaltime = 60
+interaction 
+interactionfliprate = 300
+randomstarts = true
+snapshot_dt = 1e-2
+```
+
+
+```
+Time: 00:17:09
+Size: 135 MB
+```
+
 
