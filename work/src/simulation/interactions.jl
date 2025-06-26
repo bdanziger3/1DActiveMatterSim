@@ -62,6 +62,8 @@ function alignOn2(simparams::SimulationParameters, currpositions::Matrix{<:Real}
 
     (max_pos, max_pos_i) = findmax(currpositions)
     (min_pos, min_pos_i) = findmin(currpositions)
+    max_pos_i = max_pos_i[2]
+    min_pos_i = min_pos_i[2]
 
     # naive approach: check all particles to find nearest neighbors    
     for p_i in 1:nparticles
