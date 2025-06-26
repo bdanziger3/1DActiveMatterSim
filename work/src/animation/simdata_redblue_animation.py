@@ -51,7 +51,7 @@ def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 3
 
     times = sim_data._sim_params.get_save_times()
 
-    # initialise xdata and ydata to al zeros
+    # initialize xdata and ydata to al zeros
     offsets = np.zeros([sim_data._sim_params._num_particles, 2])
 
     init_xdata = offsets[:,0]
@@ -148,6 +148,6 @@ noint11 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertat
 # sim_animate(example_align_intearaction_sim, SHOW, SAVE)
 
 
-data_dir = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/23-6"
+data_dir = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/26-6"
 
 make_mp4s_of_dir(data_dir)

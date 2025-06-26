@@ -13,10 +13,16 @@ const ASCIIMININT = 40
 
 const BITSDICT::Dict{Serialisation, Int8} = Dict(utf8 => UTF8BITS, ascii128 => ASCIIBITS)
 
+const POS_SPINS_SEPARATOR = " "
+
 """
 Calculate the total number of encoding characters each of width `encodingbits` needed to encode the data that is of size `databits`.
 
 For spin data, `databits` should be the number of particles
+    The returned value is the total number of characters needed to encode ALL spins
+
+For position data, `databits` should be the number of bits per particle position calculated with `maxposbits`.
+    The returned value is the number of characters needed PER position
 
 For utf8 serialisation, `encodingbits` should be 7
 For ascii128 serialisation, `encodingbits` should be 20
@@ -36,7 +42,29 @@ function neededbits(databits::Int, encodingbits::Union{Int, Serialisation})::Int
 end
 
 """
-Serialises a list of spins into a compressed string.
+Calculates the maximum number of bits needed to encode 1 particle's relative position data
+"""
+function bitsperpos(simparams::SimulationParameters)::Int64
+    # max relative position is maximum number of steps that fit in the box
+    dx::Float64 = simparams.v0 * simparams.dt
+    maxrelativepos::Int64 = Int64(ceil(simparams.boxwidth / dx))
+
+    # calculate how many bits needed to encode the data
+    # (2 * maxrelativepos) + 1 possible relative positions (+ or - direction plus 0)
+    maxposbits::Int64 = Int64(ceil(log2((2 * maxrelativepos) + 1)))
+
+    return maxposbits
+end
+
+"""
+Gets the number of characters per position value based on the Simulation Parameters
+"""
+function charsperpos(simparams::SimulationParameters, serialisation::Serialisation=ascii128)::Int64
+    return neededbits(bitsperpos(simparams), serialisation)
+end
+
+"""
+Serializes a list of spins into a compressed string.
 
 Serialisation schemes:
 `utf8`: Converts the set of spin values into a binary number (1 -> 0, -1 -> 1) and converts this to a string of utf-8 characters
@@ -44,7 +72,7 @@ Serialisation schemes:
 `ascii128`: Converts the set of spin values into a binary number (1 -> 0, -1 -> 1) and converts this to a string of 7-bit ascii characters.
 However, uses only characters in the range of 40-126 to prevent control, newline, whitespace, and special characters
 """
-function serialisespins(spins::Array{<:Number}, serialisation::Serialisation=utf8)::String
+function serializespins(spins::Array{<:Number}, serialisation::Serialisation=utf8)::String
     # convert spins to bits (1 -> 0 ; -1 -> 1)
     bits::BitArray = (s -> s == -1).(spins)
     numparticles = length(spins)
@@ -58,12 +86,7 @@ function serialisespins(spins::Array{<:Number}, serialisation::Serialisation=utf
     #     bitexp = (i-1) % wordwidth
     #     intencoding[arrayindex] += b * 2^(bitexp)
     # end
-    if serialisation == utf8
-        # encoding = Char.(digits(bitsum, base=UInt32(2^UTF8BITS)))
-        # encoding = Char.(intencoding)
-        # return join(encoding)
-        return 1
-    elseif serialisation == ascii128
+    if serialisation == ascii128
         # there are 128 ASCII characters, but only 94 of them [33, 126]
         # are writable characters that are not controls or whitespace.
         # Skip 33-39 because they might be special characters: use 6-bit starting at 40: [40, 103]
@@ -85,30 +108,25 @@ end
 
 
 """
-Deserialises a string into a list of spin values.
+Deserializes a string into a list of spin values.
 
-Deserialises into a UInt and then converts (0 -> 1, 1 -> -1)
+Deserializes into a UInt and then converts (0 -> 1, 1 -> -1)
 
 Serialisation schemes:
 `utf8`: Converts the set of spin values into a binary number (1 -> 0, -1 -> 1) and converts this to a string of utf-8 characters
 `ascii128`: Converts the set of spin values into a binary number (1 -> 0, -1 -> 1) and converts this to a string of 7-bit-8 characters
 """
-function deserialisespins(datastr::String, numparticles::Int, serialisation::Serialisation=utf8)::Array{Int8}
+function deserializespins(datastr::String, numparticles::Int, serialisation::Serialisation=utf8)::Array{Int8}
     spins::Array{Int8} = zeros(1, numparticles)
     
     if serialisation == ascii128
-        t1 = time()
         # convert ASCII string into array of Int8s
         ints = Int8.(collect(datastr)) .- ASCIIMININT
-        t2 = time()
         # convert into one binary row array
         binspins = transpose(vcat(digits.(ints, base=Int8(2), pad=ASCIIBITS)...))
-        t3 = time()
         # convert from binary to spins (0 -> 1, 1 -> -1)
         spins = (s -> s==1 ? Int8(-1) : Int8(1)).(binspins)
-        t4 = time()
         # remove padding on the end by only returning `numparticles` spins
-        println("$(t2-t1),$(t3-t2),$(t4-t3),$(t4)")
         return spins[1:numparticles]
     else
         # interpret is as a normal string with 1s and -1s separated by commas
@@ -116,3 +134,63 @@ function deserialisespins(datastr::String, numparticles::Int, serialisation::Ser
     end
 end
 
+
+
+"""
+Serializes a list of positions into a compressed string encoding distance relative to initial positions.
+
+Serialisation schemes:
+`ascii128`: Converts the set of spin values into a binary number (1 -> 0, -1 -> 1) and converts this to a string of 7-bit ascii characters.
+However, uses only characters in the range of 40-126 to prevent control, newline, whitespace, and special characters
+"""
+function serializepositions(positions::Array{<:Number}, initialpositions::Array{<:Number}, simparams::SimulationParameters)::String
+    # represent positions as integer number of steps from original Positions
+    dx::Float64 = simparams.v0 * simparams.dt
+    relativepositions::Array{<:Int} = Int64.(round.((positions - initialpositions) / dx))
+
+    # calculate how many 6-bit ASCII characters are needed per position
+    charspp::Int64 = charsperpos(simparams)
+    
+    # We are encoding as signed ints, so use `base=2^(bits-1)`
+    signedasciiintmatrix = mapreduce(permutedims, vcat, digits.(relativepositions, base=Int8(2^(ASCIIBITS-1)), pad=charspp))
+
+    # convert to unsigned ints, shift by `ASCIIMININT`, and convert to chars
+    charmatrix = (x -> x < 0 ? Char(x + 2^ASCIIBITS + ASCIIMININT) : Char(x + ASCIIMININT)).(signedasciiintmatrix)
+    stringencoding::String = join(permutedims(charmatrix))
+
+    return stringencoding
+end
+
+"""
+Deserializes a string into a list of position values.
+
+Deserializes into a UInt and then converts (0 -> 1, 1 -> -1)
+
+Serialisation schemes:
+`utf8`: Converts the set of spin values into a binary number (1 -> 0, -1 -> 1) and converts this to a string of utf-8 characters
+`ascii128`: Converts the set of spin values into a binary number (1 -> 0, -1 -> 1) and converts this to a string of 7-bit-8 characters
+"""
+function deserializepositions(datastr::String, initialpositions::Array{<:Number}, simparams::SimulationParameters)::Array{Float64}
+    # calculate encoding parameters
+    dx::Float64 = simparams.v0 * simparams.dt
+    charspp::Int64 = charsperpos(simparams) # how many 6-bit ASCII characters are needed per position
+    
+    # initialize results array
+    positions::Array{Float64} = zeros(1, simparams.numparticles)
+    # reshape and convert characters to unsigned ints
+    unsignedintmatrix = permutedims(reshape((Int8.(collect(datastr)) .- ASCIIMININT), charspp, :))
+    # convert back into signed ints
+    signedintmatrix = (x -> x > 2^(ASCIIBITS-1) ? x - 2^ASCIIBITS : x).(unsignedintmatrix)
+
+    # sum up signed ints (scaled by digit place for a 6-bit signed int) to get relative positions
+    sumcol::Array{Int64} = zeros(simparams.numparticles, 1)
+    
+    for i in 1:charspp
+        sumcol += Int64.(signedintmatrix[:,i]) * (2^((ASCIIBITS - 1) * (i-1)))
+    end
+    
+    # convert relative positions back to absolute positions
+    positions = (sumcol * dx) .+ initialpositions
+
+    return positions
+end
