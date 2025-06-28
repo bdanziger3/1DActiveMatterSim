@@ -4,14 +4,9 @@ include("../simulation/basic_sim.jl")
 using JSON
 using Dates
 
-@enum Serialisation utf8 ascii128 none
-
-const UTF8BITS::Int8 = 20
-const ASCIIBITS::Int8 = 6
+const ASCIIBITS::Int64 = 6
 
 const ASCIIMININT = 40
-
-const BITSDICT::Dict{Serialisation, Int8} = Dict(utf8 => UTF8BITS, ascii128 => ASCIIBITS)
 
 const POS_SPINS_SEPARATOR = " "
 
@@ -27,11 +22,7 @@ For position data, `databits` should be the number of bits per particle position
 For utf8 serialisation, `encodingbits` should be 7
 For ascii128 serialisation, `encodingbits` should be 20
 """
-function neededbits(databits::Int, encodingbits::Union{Int, Serialisation})::Int
-    if typeof(encodingbits) == Serialisation
-        encodingbits = BITSDICT[encodingbits]
-    end
-
+function neededbits(databits::Int, encodingbits::Int64=ASCIIBITS)::Int
     nbits = div(databits, encodingbits)
 
     if databits % encodingbits != 0
@@ -59,8 +50,8 @@ end
 """
 Gets the number of characters per position value based on the Simulation Parameters
 """
-function charsperpos(simparams::SimulationParameters, serialisation::Serialisation=ascii128)::Int64
-    return neededbits(bitsperpos(simparams), serialisation)
+function charsperpos(simparams::SimulationParameters)::Int64
+    return neededbits(bitsperpos(simparams), ASCIIBITS)
 end
 
 """
@@ -72,7 +63,7 @@ Serialisation schemes:
 `ascii128`: Converts the set of spin values into a binary number (1 -> 0, -1 -> 1) and converts this to a string of 7-bit ascii characters.
 However, uses only characters in the range of 40-126 to prevent control, newline, whitespace, and special characters
 """
-function serializespins(spins::Array{<:Number}, serialisation::Serialisation=utf8)::String
+function serializespins(spins::Array{<:Number})::String
     # convert spins to bits (1 -> 0 ; -1 -> 1)
     bits::BitArray = (s -> s == -1).(spins)
     numparticles = length(spins)
@@ -86,24 +77,21 @@ function serializespins(spins::Array{<:Number}, serialisation::Serialisation=utf
     #     bitexp = (i-1) % wordwidth
     #     intencoding[arrayindex] += b * 2^(bitexp)
     # end
-    if serialisation == ascii128
-        # there are 128 ASCII characters, but only 94 of them [33, 126]
-        # are writable characters that are not controls or whitespace.
-        # Skip 33-39 because they might be special characters: use 6-bit starting at 40: [40, 103]
-        encodingints::Array{UInt8} = zeros(1, neededbits(numparticles, ascii128))
-        for (i, b) in pairs(bits)
-            slot = div(i-1, ASCIIBITS) + 1
-            # add 2^(n) to the appropriate index of the array
-            encodingints[slot] += (b * 2^((mod(i-1, ASCIIBITS))))
-        end
-        
-        encodingints .+= ASCIIMININT        
-        encoding = join(Char.(encodingints))
-        
-        return encoding
-    else
-        return join(spins, ",")
+
+    # there are 128 ASCII characters, but only 94 of them [33, 126]
+    # are writable characters that are not controls or whitespace.
+    # Skip 33-39 because they might be special characters: use 6-bit starting at 40: [40, 103]
+    encodingints::Array{UInt8} = zeros(1, neededbits(numparticles, ASCIIBITS))
+    for (i, b) in pairs(bits)
+        slot = div(i-1, ASCIIBITS) + 1
+        # add 2^(n) to the appropriate index of the array
+        encodingints[slot] += (b * 2^((mod(i-1, ASCIIBITS))))
     end
+    
+    encodingints .+= ASCIIMININT        
+    encoding = join(Char.(encodingints))
+    
+    return encoding
 end
 
 
@@ -113,25 +101,20 @@ Deserializes a string into a list of spin values.
 Deserializes into a UInt and then converts (0 -> 1, 1 -> -1)
 
 Serialisation schemes:
-`utf8`: Converts the set of spin values into a binary number (1 -> 0, -1 -> 1) and converts this to a string of utf-8 characters
 `ascii128`: Converts the set of spin values into a binary number (1 -> 0, -1 -> 1) and converts this to a string of 7-bit-8 characters
 """
-function deserializespins(datastr::String, numparticles::Int, serialisation::Serialisation=utf8)::Array{Int8}
+function deserializespins(datastr::String, numparticles::Int)::Array{Int8}
     spins::Array{Int8} = zeros(1, numparticles)
+
+    # convert ASCII string into array of Int8s
+    ints = Int8.(collect(datastr)) .- ASCIIMININT
+    # convert into one binary row array
+    binspins = transpose(vcat(digits.(ints, base=Int8(2), pad=ASCIIBITS)...))
+    # convert from binary to spins (0 -> 1, 1 -> -1)
+    spins = (s -> s==1 ? Int8(-1) : Int8(1)).(binspins)
+    # remove padding on the end by only returning `numparticles` spins
+    return spins[1:numparticles]
     
-    if serialisation == ascii128
-        # convert ASCII string into array of Int8s
-        ints = Int8.(collect(datastr)) .- ASCIIMININT
-        # convert into one binary row array
-        binspins = transpose(vcat(digits.(ints, base=Int8(2), pad=ASCIIBITS)...))
-        # convert from binary to spins (0 -> 1, 1 -> -1)
-        spins = (s -> s==1 ? Int8(-1) : Int8(1)).(binspins)
-        # remove padding on the end by only returning `numparticles` spins
-        return spins[1:numparticles]
-    else
-        # interpret is as a normal string with 1s and -1s separated by commas
-        return transpose(parse.(Int8, split(datastr, ",")))
-    end
 end
 
 
@@ -194,3 +177,19 @@ function deserializepositions(datastr::String, initialpositions::Array{<:Number}
 
     return positions
 end
+
+
+function serializedatafileline(dataline::String, initialpositions::Array{Float64}, simparams::SimulationParameters)::String
+    # load in data, compress, save outstring
+    particle_data = parse.(Float64, split(dataline, ","))
+    positions = copy(particle_data[1:simparams.numparticles])
+    spins = Int8.(copy(particle_data[simparams.numparticles+1:end]))
+
+    positionstring = serializepositions(positions, initialpositions, simparams)
+    spinsstring = serializespins(spins)
+
+    compressedline = "$(positionstring)$(POS_SPINS_SEPARATOR)$(spinsstring)"
+
+    return compressedline
+end
+

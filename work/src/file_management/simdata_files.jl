@@ -1,4 +1,5 @@
 include("../simulation/basic_sim.jl")
+include("./data_serialisation.jl")
 # include("./sim_structs.jl")
 
 using JSON
@@ -357,6 +358,30 @@ function loadsim(inputfilename::String, filetype::DataFileType)::SimulationData
     end
 end
 
+"""
+Opens a file and returns the `SimulationParameters` of the first segment
+"""
+function loadsimparams(inputfilename::String)::SimulationParameters
+    # read file
+    file = open(inputfilename, "r")
+
+    line = readline(file)
+    # Check that data file header is correct
+    @assert (contains(lowercase(line), "row wise txt") || contains(lowercase(line), "rowwise txt")) "Rowwisetxt data file does not have correct first line. File may be corrupted."
+    
+    while !contains(lowercase(line), "simulation parameters")
+        line = readline(file)
+    end
+           
+    # read next line to get number of position data points
+    simparaminfo_str = readline(file)
+    simparams = SimulationParameters(simparaminfo_str)
+
+    close(file)
+
+    return simparams
+end
+
 
 """
 Reads only the `nlines` lines of data in a data file starting at line `start_line`.
@@ -507,35 +532,67 @@ end
 
 
 """
-Saves simulation data from a `SimulationData` object to a data file.
-
-Can specify the output file type with `filetype`.
+Loads an existing simulation data file and saves a different file with the data serialized and compressed.
 
 By default, asks for confirmation if overwriting an existing file.
 Set `forceclear` to `true` to clear the file without warning.
 
 """
-function savesim_compressed(simdata::SimulationData, outputfilename::String, filetype::DataFileType=rowwisetxt, forceclear::Bool=false)         
+function compresssimfile(inputfilename::String, outputfilename::String, forceclear::Bool=false)         
     # Ask to confirm if overwriting existing file
     if !forceclear
-        filenametouse = checkfilename(outputfilename)
+        outputfilenametouse = checkfilename(outputfilename)
     else
-        filenametouse = outputfilename
+        outputfilenametouse = outputfilename
     end
+
+    # get preliminary info
+    initialsimdata::SimulationData = loadsim_nlines(inputfilename, 1, 1)
+    initialpos = permutedims(initialsimdata.positions)
     
-    @assert filetype == rowwisetxt "Can only compress `roweisetxt` files."
+    inputfile = open(inputfilename)
+    totallines::Int64 = countlines(inputfile)
+    close(inputfile)
+
+    currentline::Int64 = 0
+
+    # reopen file
+    inputfile = open(inputfilename)
     
-    open(filenametouse, "w") do io
-        println(io, "Row Wise txt")  # Row Wise .txt
-        println(io, "Saved at $(round(now(), Dates.Second(1)))")  # Timestamp
-        println(io, "Simulation Parameters")
-        println(io, csv_serialize(simdata.simparams))
-        println(io, "Particle States ([positions], [spins])")
-        # construct relative particle state matrix by concatenating states of position and spin
-        particlestates::Matrix{Any} = zeros(getnsaves(simdata.simparams), 2 * simdata.simparams.numparticles)
-        particlestates[:,1:simdata.simparams.numparticles] = simdata.positions
-        particlestates[:,simdata.simparams.numparticles+1:end] = simdata.spins
-        writedlm(io, particlestates, ",")
+    particlestateline::Int64 = 0
+
+    open(outputfilenametouse, "w") do io
+
+        #  while !eof(inputfile)
+        @showprogress 1 "Compressing file..." for i in 1:totallines
+            line = readline(inputfile)
+            currentline += 1
+
+            # for most lines, just copy the line
+            linetowrite = line
+
+            # look at headers to know which lines to compress
+            if contains(lowercase(line), "particle states")
+                particlestateline = 1
+            elseif contains(lowercase(line), "saved at")
+                # turns off compression between segements
+                particlestateline = 0
+            else
+                if  particlestateline == 1
+                    # don't serialize the first particle state
+                    particlestateline += 1
+                elseif particlestateline >= 2
+                    # serialize the line and write it
+                    linetowrite = serializedatafileline(line, initialpos, initialsimdata.simparams)
+                end
+            end
+
+
+            # else print the line
+            println(io, linetowrite) 
+        end
     end
+
+    close(inputfile)
 
 end
