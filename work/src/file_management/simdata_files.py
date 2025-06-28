@@ -9,6 +9,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from simulation.sim_structs import SimulationData, SimulationParameters
 from utils.print_tools import ProgressBar
 
+DATE_START_INDEX = len("Saved at ")
+
 class DataFileType(Enum):
     SEPERATE_FILES = 1
     SEQUENTIAL_TXT = 2
@@ -133,6 +135,68 @@ def loadsim(input_fn:str, file_type:DataFileType=DataFileType.ROWWISE_TXT) -> Si
     return sim_data
 
 
+# def get_sim_segements(input_fn:str) -> SimulationData:
+#     # open and read file
+#     fn = open(input_fn, "r")
+#     line = fn.readline()
+
+#     # Check that data file header is correct        
+#     assert (("row wise txt" in line.lower()) or ("rowwise txt" in line.lower())), "Rowwisetxt data file does not have correct first line. File may be corrupted."
+
+#     line = fn.readline()
+
+#     end_of_file = False
+
+#     sim_dates:list[time.struct_time] = []
+#     line_counter = 0
+
+#     while not end_of_file:
+
+#         # if the current line is a date, read it and skip to next line. Else do nothing
+#         try:
+#             sim_dates.append(parse_julia_datetime(line[DATE_START_INDEX:]))
+#             line = fn.readline()
+#         except ValueError as e:
+#             sim_dates.append(parse_julia_datetime("0001-01-01T00:00:00"))
+
+#         assert "simulation parameters" in line.lower(), "ROWWISE_TXT data file does not have correct header structure. File may be corrupted."
+       
+#         # read next line to get number of position data points
+#         sim_param_info = fn.readline()
+#         sim_param_info_list = string_list_to_number_list(sim_param_info, out_type=SimulationParameters.expected_types)
+#         sim_params:SimulationParameters = SimulationParameters.construct_from_list(sim_param_info_list)
+#         ntimes = sim_params.get_nsaves()
+            
+#         # now skip the particle state data
+#         line = fn.readline()
+#         linecounter += 1
+#         assert "particle states" in line.lower(), "ROWWISE_TXT  file does not have correct `Particle States` header. File may be corrupted."
+        
+#         @assert contains(lowercase(line), "particle states") "Rowwisetxt data file does not have correct `Particle States` header. File may be corrupted."
+        
+#         # now read through the data in the order: [[positions], [spins]]
+
+#         # positions
+#         # initialize matrix and read in data from file
+#         pb = ProgressBar(ntimes, "Loading positions...", "Done")
+#         pos_matrix = np.zeros([ntimes, sim_params._num_particles], dtype=np.float64)
+#         spins_matrix = np.zeros([ntimes, sim_params._num_particles], dtype=np.int8)
+
+#         for i in range(ntimes):  
+#             pb.sparse_progress(i)              
+#             data_line = fn.readline()
+#             data_list = string_list_to_number_list(data_line)
+#             pos_matrix[i, :] = data_list[:sim_params._num_particles]        
+#             spins_matrix[i, :] = data_list[sim_params._num_particles:]        
+
+    # # close file
+    # fn.close()
+        
+    # # store matrix data as `SimulationData` object and return
+    # sim_data = SimulationData(sim_params, sim_params.get_times, pos_matrix, spins_matrix)
+    # return sim_data
+
+
 def loadsim_n_lines(input_fn:str, start_line:int, n_lines:int, file_type:DataFileType=DataFileType.ROWWISE_TXT, change_simparams=False) -> SimulationData:
     """
     Reads only the `n_lines` lines of data in a data file starting at line `start_line`.
@@ -210,6 +274,11 @@ def loadsim_n_lines(input_fn:str, start_line:int, n_lines:int, file_type:DataFil
     # store matrix data as `SimulationData` object and return
     sim_data = SimulationData(sim_params, sim_params.get_times, pos_matrix, spins_matrix)
     return sim_data
+
+
+
+
+
 
     
 def write_dlm(file_name:str, data:list, delimiter:str):

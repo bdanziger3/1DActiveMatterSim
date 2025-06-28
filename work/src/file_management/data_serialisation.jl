@@ -178,8 +178,24 @@ function deserializepositions(datastr::String, initialpositions::Array{<:Number}
     return positions
 end
 
+"""
+Calculate the number of decimal places needed that preserves the position information.
 
-function serializedatafileline(dataline::String, initialpositions::Array{Float64}, simparams::SimulationParameters)::String
+Keep `EXCESS_DECIMAL_PLACES=2` decimal places smaller than `dx`
+"""
+function roundpositions(positions::Array{Float64}, simparams::SimulationParameters)::String
+    EXCESS_DECIMAL_PLACES::Int64 = 2
+    dx::Float64 = simparams.dt * simparams.v0
+    ndecimalplaces::Int64 = Int64(ceil(-log10(dx))) + EXCESS_DECIMAL_PLACES
+    roundedpositions = round.(positions, digits=ndecimalplaces)
+    positionstring = join(roundedpositions, ",")
+
+    return positionstring
+end
+
+
+
+function serializedatafileline(dataline::String, initialpositions::Array{Float64}, simparams::SimulationParameters, isfirstline::Bool=false)::String
     # load in data, compress, save outstring
     particle_data = parse.(Float64, split(dataline, ","))
     positions = copy(particle_data[1:simparams.numparticles])
@@ -188,7 +204,14 @@ function serializedatafileline(dataline::String, initialpositions::Array{Float64
     positionstring = serializepositions(positions, initialpositions, simparams)
     spinsstring = serializespins(spins)
 
-    compressedline = "$(positionstring)$(POS_SPINS_SEPARATOR)$(spinsstring)"
+    compressedline::String = ""
+
+    if isfirstline
+        roundedpositionstring = roundpositions(positions, simparams)
+        compressedline = "$(roundedpositionstring)$(POS_SPINS_SEPARATOR)$(spinsstring)"
+    else
+        compressedline = "$(positionstring)$(POS_SPINS_SEPARATOR)$(spinsstring)"
+    end
 
     return compressedline
 end

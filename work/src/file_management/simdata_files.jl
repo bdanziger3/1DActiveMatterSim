@@ -579,14 +579,14 @@ function compresssimfile(inputfilename::String, outputfilename::String, forcecle
                 particlestateline = 0
             else
                 if  particlestateline == 1
-                    # don't serialize the first particle state
+                    # For the first state, only serialize spins, round positions
+                    linetowrite = serializedatafileline(line, initialpos, initialsimdata.simparams, true)
                     particlestateline += 1
                 elseif particlestateline >= 2
                     # serialize the line and write it
                     linetowrite = serializedatafileline(line, initialpos, initialsimdata.simparams)
                 end
             end
-
 
             # else print the line
             println(io, linetowrite) 
