@@ -389,9 +389,11 @@ Reads only the `nlines` lines of data in a data file starting at line `start_lin
 
 use `startline=-1` to read the last `nlines` lines of the file
 
+use `ignorespins=true` to skip over encoded spin data and load only posotions.
+
 Reads from the first segment only.
 """
-function loadsim_nlines(inputfilename::String, startline::Int, nlines::Int, filetype::DataFileType=rowwisetxt)::SimulationData
+function loadsim_nlines(inputfilename::String, startline::Int, nlines::Int, filetype::DataFileType=rowwisetxt, ignorespins::Bool=false)::SimulationData
     # initialize parameters and matrices        
     ntimes::Int64 = nlines
     posmatrix::Matrix{Float64} = zeros(nlines, 0)
@@ -443,9 +445,15 @@ function loadsim_nlines(inputfilename::String, startline::Int, nlines::Int, file
     spinsmatrix = zeros(nlines, simparams.numparticles)
     for i in 1:nlines                    
         dataline = readline(file)
-        particle_i_data::Array{Float64} = parse.(Float64, split(dataline, ","))
-        posmatrix[i,:] = copy(particle_i_data[1:simparams.numparticles])
-        spinsmatrix[i,:] = Int8.(copy(particle_i_data[simparams.numparticles+1:end]))
+        if ignorespins
+            positionsubstring = split(dataline, (',', POS_SPINS_SEPARATOR[1]))[1:simparams.numparticles]
+            posdata::Array{Float64} = parse.(Float64, positionsubstring)
+            posmatrix[i,:] = copy(posdata)
+        else
+            particle_i_data::Array{Float64} = parse.(Float64, split(dataline, ","))
+            posmatrix[i,:] = copy(particle_i_data[1:simparams.numparticles])
+            spinsmatrix[i,:] = Int8.(copy(particle_i_data[simparams.numparticles+1:end]))
+        end
     end
 
     # close file
@@ -585,6 +593,80 @@ function compresssimfile(inputfilename::String, outputfilename::String, forcecle
                 elseif particlestateline >= 2
                     # serialize the line and write it
                     linetowrite = serializedatafileline(line, initialpos, initialsimdata.simparams)
+                end
+            end
+
+            # else print the line
+            println(io, linetowrite) 
+        end
+    end
+
+    close(inputfile)
+
+end
+
+
+"""
+Loads an existing compressed simulation data file and saves a different file with the data deserialized and uncompressed.
+
+By default, asks for confirmation if overwriting an existing file.
+Set `forceclear` to `true` to clear the file without warning.
+
+"""
+function uncompresssimfile(inputfilename::String, outputfilename::String, forceclear::Bool=false)         
+    # Ask to confirm if overwriting existing file
+    if !forceclear
+        outputfilenametouse = checkfilename(outputfilename)
+    else
+        outputfilenametouse = outputfilename
+    end
+
+    # get preliminary info
+    initialsimdata::SimulationData = loadsim_nlines(inputfilename, 1, 1, rowwisetxt, true)
+    initialpos = permutedims(initialsimdata.positions)
+    
+    inputfile = open(inputfilename)
+    totallines::Int64 = countlines(inputfile)
+    close(inputfile)
+
+    currentline::Int64 = 0
+
+    # reopen file
+    inputfile = open(inputfilename)
+    
+    particlestateline::Int64 = 0
+
+    open(outputfilenametouse, "w") do io
+
+        #  while !eof(inputfile)
+        @showprogress 1 "Uncompressing file..." for i in 1:totallines
+            line = readline(inputfile)
+            currentline += 1
+
+            # for many lines, just copy the line
+            linetowrite = line
+
+            # look at headers to know which lines to compress
+            if contains(lowercase(line), "particle states")
+                particlestateline = 1
+            elseif contains(lowercase(line), "saved at")
+                # turns off compression between segements
+                particlestateline = 0
+            elseif particlestateline >= 1
+                dataline = split(line, POS_SPINS_SEPARATOR)
+                posstring::String = dataline[1]
+                encodedspins::String = dataline[2]
+                spindata = deserializespins(encodedspins, initialsimdata.simparams.numparticles)
+                if  particlestateline == 1
+                    # For the first state, read the position data and deserialize the spins
+                    # positiondata::Array{Float64} = parse.(Float64, split(dataline[1], ","))
+                    # particle_data::Array{Float64} = parse.(Float64, split(dataline, ","))
+                    linetowrite = "$(posstring),$(join(spindata, ','))"
+                    particlestateline += 1
+                elseif particlestateline >= 2
+                    # decode the positions as well based on the initial positions
+                    positiondata::Array{Float64} = deserializepositions(posstring, initialpos, initialsimdata.simparams)
+                    linetowrite = "$(join(positiondata, ',')),$(join(spindata, ','))"
                 end
             end
 
