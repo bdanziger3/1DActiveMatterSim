@@ -118,18 +118,36 @@ end
 
 """
 Returns a copy of the `SimulationParameters` struct object but with `randomstarts` set to false and updated `starttime` and `totaltime`
+
+Use this function to generate the sim params of a new segment on an extension of a simulation
 """
-function newstarts(simparams::SimulationParameters, timeextension::Number)::SimulationParameters
-    timeextension = Float64(timeextension)
+function newstarts(simparams::SimulationParameters, newsegmenttime::Number)::SimulationParameters
+    newsegmenttime = Float64(newsegmenttime)
     # get array of original simparams
     sparray = asarray(simparams)
 
     # update `totaltime` and `starttime`
-    sparray[2] = timeextension
+    sparray[2] = newsegmenttime
     sparray[9] += simparams.totaltime
 
     # change `randomstarts` to `false`
     sparray[10] = false
+    return SimulationParameters(sparray)
+end
+
+"""
+Returns a copy of the `SimulationParameters` struct object but with a new `totaltime`
+
+Use this function to generate the sim params of a collapsed simulation file.
+"""
+function newtotaltime(simparams::SimulationParameters, newsegmenttime::Number)::SimulationParameters
+    newsegmenttime = Float64(newsegmenttime)
+    # get array of original simparams
+    sparray = asarray(simparams)
+
+    # update `totaltime` and `starttime`
+    sparray[2] = newsegmenttime
+
     return SimulationParameters(sparray)
 end
 

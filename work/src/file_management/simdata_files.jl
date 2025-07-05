@@ -7,6 +7,7 @@ using Dates
 
 const DATE_START_INDEX = length("Saved at ") + 1    # 9
 const SEGMENT_HEADER_LINES = 4
+const NLINES_FROM_SIMPARAM_TO_STATES = 2
 
 @enum DataFileType seperatefiles sequentialtxt rowwisetxt json
 
@@ -27,6 +28,15 @@ function getfirstsaveddate(filename::String)
     return saveddate
 end
 
+function findfreefilename(filenameprefix::String)::String
+    i = 0
+    while isfile("$(filenameprefix)_$(i).txt")
+        i += 1
+    end
+    newname = "$(filenameprefix)_$(i).txt"
+    return newname
+end
+
 function checkfilename(outputfilename::String)::String
     if isfile(outputfilename)
         saveddate::DateTime = getfirstsaveddate(outputfilename)
@@ -35,12 +45,7 @@ function checkfilename(outputfilename::String)::String
         response = readline()
         if lowercase(response) != "y"
             # find new file_name
-            fileprefix = outputfilename[1:end-4]
-            i = 0
-            while isfile("$(fileprefix)_$(i).txt")
-                i += 1
-            end
-            newname = "$(fileprefix)_$(i).txt"
+            newname = findfreefilename(outputfilename[1:end-4])
             println("Saving instead as $(newname)")
             return newname
         end
@@ -70,7 +75,17 @@ function getdatedir(date::Date=today(), currdir::String=pwd())
 
 end
 
-function getsimsegments(inputfilename::String)
+"""
+Reads through file and gets data about each of the segments
+
+Returns a tuple with 4 arrays:
+
+- `simstarts`: lines on which each segment begins
+- `simsaves`: number of saves in the simdata
+- `simtimes`: `totaltime` parameter of the simdata
+- `simdates`: `DateTime` objects of the time the segment was saved
+"""
+function getsimsegments(inputfilename::String)::Tuple{Array, Array, Array, Array}
     # initialize parameters and matrices        
     simdates::Array{DateTime} = Array{DateTime}[]
     simtimes::Array{Float64} = Array{Float64}[]
@@ -538,6 +553,64 @@ function appendsim(simdata::SimulationData, outputfilename::String)
 end
 
 
+"""
+Loads an existing simulation data file (can be compressed or not) and saves a different file with the different segments collapsed into one segment under one header.
+
+By default, asks for confirmation if overwriting an existing file.
+Set `forceclear = true` to clear the file without warning.
+
+"""
+function collapsesegments(inputfilename::String, outputfilename::String, forceclear::Bool=false)         
+    # Ask to confirm if overwriting existing file
+    if !forceclear
+        outputfilenametouse = checkfilename(outputfilename)
+    else
+        outputfilenametouse = outputfilename
+    end
+
+    # get preliminary info
+    simstarts, simsaves, simtimes, _ = getsimsegments(inputfilename)
+    initialsimdata::SimulationData = loadsim_nlines(inputfilename, 1, 1, rowwisetxt, true)
+    
+    # calculate total time extension
+    totaltimeextension = sum(simtimes)
+    newsimparams = newtotaltime(initialsimdata.simparams, totaltimeextension)
+    
+    inputfile = open(inputfilename)
+    totallines::Int64 = countlines(inputfile)
+    close(inputfile)
+
+
+    # reopen file
+    inputfile = open(inputfilename)
+    
+    open(outputfilenametouse, "w") do io
+
+        @showprogress 1 "Collapsing segments in file..." for i in 1:totallines
+            line = readline(inputfile)
+
+            # for many lines, just copy the line
+            linetowrite = line
+
+            # change Simulation Parameters of top segment
+            if i == simstarts[1] - NLINES_FROM_SIMPARAM_TO_STATES
+                linetowrite = csv_serialize(newsimparams)
+            elseif i > simstarts[1] && any(i .- simstarts[2:end] .<= 0 .&& i .- simstarts[2:end] .>= -SEGMENT_HEADER_LINES)
+                # if within 4 from a start line of a segment that isn't the first segment,
+                # don't write any line at all.
+                # Include the start line since it is just a repeat of the last state in the previous segment
+                continue
+            end
+
+            # else print the line
+            println(io, linetowrite) 
+        end
+    end
+
+    close(inputfile)
+
+end
+
 
 """
 Loads an existing simulation data file and saves a different file with the data serialized and compressed.
@@ -562,8 +635,6 @@ function compresssimfile(inputfilename::String, outputfilename::String, forcecle
     totallines::Int64 = countlines(inputfile)
     close(inputfile)
 
-    currentline::Int64 = 0
-
     # reopen file
     inputfile = open(inputfilename)
     
@@ -574,7 +645,6 @@ function compresssimfile(inputfilename::String, outputfilename::String, forcecle
         #  while !eof(inputfile)
         @showprogress 1 "Compressing file..." for i in 1:totallines
             line = readline(inputfile)
-            currentline += 1
 
             # for most lines, just copy the line
             linetowrite = line
@@ -605,7 +675,6 @@ function compresssimfile(inputfilename::String, outputfilename::String, forcecle
 
 end
 
-
 """
 Loads an existing compressed simulation data file and saves a different file with the data deserialized and uncompressed.
 
@@ -629,8 +698,6 @@ function uncompresssimfile(inputfilename::String, outputfilename::String, forcec
     totallines::Int64 = countlines(inputfile)
     close(inputfile)
 
-    currentline::Int64 = 0
-
     # reopen file
     inputfile = open(inputfilename)
     
@@ -641,7 +708,6 @@ function uncompresssimfile(inputfilename::String, outputfilename::String, forcec
         #  while !eof(inputfile)
         @showprogress 1 "Uncompressing file..." for i in 1:totallines
             line = readline(inputfile)
-            currentline += 1
 
             # for many lines, just copy the line
             linetowrite = line
@@ -653,20 +719,10 @@ function uncompresssimfile(inputfilename::String, outputfilename::String, forcec
                 # turns off compression between segements
                 particlestateline = 0
             elseif particlestateline >= 1
-                dataline = split(line, POS_SPINS_SEPARATOR)
-                posstring::String = dataline[1]
-                encodedspins::String = dataline[2]
-                spindata = deserializespins(encodedspins, initialsimdata.simparams.numparticles)
-                if  particlestateline == 1
-                    # For the first state, read the position data and deserialize the spins
-                    # positiondata::Array{Float64} = parse.(Float64, split(dataline[1], ","))
-                    # particle_data::Array{Float64} = parse.(Float64, split(dataline, ","))
-                    linetowrite = "$(posstring),$(join(spindata, ','))"
+                isfirstline::Bool = (particlestateline == 1)
+                linetowrite = deserializedatafileline(line, initialpos, initialsimdata.simparams, isfirstline)
+                if isfirstline
                     particlestateline += 1
-                elseif particlestateline >= 2
-                    # decode the positions as well based on the initial positions
-                    positiondata::Array{Float64} = deserializepositions(posstring, initialpos, initialsimdata.simparams)
-                    linetowrite = "$(join(positiondata, ',')),$(join(spindata, ','))"
                 end
             end
 
@@ -676,5 +732,67 @@ function uncompresssimfile(inputfilename::String, outputfilename::String, forcec
     end
 
     close(inputfile)
+end
 
+"""
+Loads an existing compressed simulation data file as a `SimulationData` oject.
+"""
+function loadcompressedfile(inputfilename::String)::SimulationData
+    # get segments data
+    simstarts, _, _, _ = getsimsegments(inputfilename)
+
+    if length(simstarts) > 1
+        # create temporary collased file to read
+        collapsedfilename = findfreefilename(inputfilename[1:end-4])
+        collapsesegments(inputfilename, collapsedfilename, true)
+    else
+        collapsedfilename = inputfilename
+    end
+
+    # get preliminary info
+    initialsimdata::SimulationData = loadsim_nlines(collapsedfilename, 1, 1, rowwisetxt, true)
+    initialpos = permutedims(initialsimdata.positions)
+    simparams::SimulationParameters = initialsimdata.simparams
+    nsaves = getnsaves(simparams)
+
+    # reopen file
+    datafile = open(collapsedfilename)
+
+    # step through the header and check it is as Expected
+
+    line = readline(datafile)
+    # Check that data file header is correct
+    @assert (contains(lowercase(line), "row wise txt") || contains(lowercase(line), "rowwise txt")) "Rowwisetxt data file does not have correct first line. File may be corrupted."
+        
+    # skip lines until start of particle data
+    for _ in 1:SEGMENT_HEADER_LINES
+        line = readline(datafile)
+    end
+
+    # positions and spins
+    posmatrix = zeros(nsaves, simparams.numparticles)
+    spinsmatrix = zeros(nsaves, simparams.numparticles)
+
+    # read in data from file
+    @showprogress 1 "Loading Simulation (N=$(simparams.numparticles), nsteps=$(nsaves))..." for i in 1:nsaves
+    # for i in 1:nsaves
+        dataline = readline(datafile)
+        isfirstline::Bool = (i == 1)                 
+        deserializeddataline = deserializedatafileline(dataline, initialpos, simparams, isfirstline)
+        particle_i_data::Array{Float64} = parse.(Float64, split(deserializeddataline, ","))
+        posmatrix[i,:] = copy(particle_i_data[1:simparams.numparticles])
+        spinsmatrix[i,:] = Int8.(copy(particle_i_data[simparams.numparticles+1:end]))
+    end
+
+    # close file
+    close(datafile)
+    
+    # close the temporary file if one was made
+    if length(simstarts) > 1
+        rm(collapsedfilename)
+    end
+        
+    # store matrix data as `SimulationData` object and return
+    simdata = SimulationData(simparams, getsavetimes(simparams), posmatrix, spinsmatrix)
+    return simdata
 end

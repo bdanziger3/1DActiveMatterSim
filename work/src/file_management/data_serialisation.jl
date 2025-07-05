@@ -19,8 +19,7 @@ For spin data, `databits` should be the number of particles
 For position data, `databits` should be the number of bits per particle position calculated with `maxposbits`.
     The returned value is the number of characters needed PER position
 
-For utf8 serialisation, `encodingbits` should be 7
-For ascii128 serialisation, `encodingbits` should be 20
+For ascii128 serialisation, `encodingbits` should be 6
 """
 function neededbits(databits::Int, encodingbits::Int64=ASCIIBITS)::Int
     nbits = div(databits, encodingbits)
@@ -58,7 +57,6 @@ end
 Serializes a list of spins into a compressed string.
 
 Serialisation schemes:
-`utf8`: Converts the set of spin values into a binary number (1 -> 0, -1 -> 1) and converts this to a string of utf-8 characters
 
 `ascii128`: Converts the set of spin values into a binary number (1 -> 0, -1 -> 1) and converts this to a string of 7-bit ascii characters.
 However, uses only characters in the range of 40-126 to prevent control, newline, whitespace, and special characters
@@ -67,16 +65,6 @@ function serializespins(spins::Array{<:Number})::String
     # convert spins to bits (1 -> 0 ; -1 -> 1)
     bits::BitArray = (s -> s == -1).(spins)
     numparticles = length(spins)
-    # builds an array of appropriately-sized integers based on the bits
-    # 20-bit integers for `utf8` and 7-bit integers for `ascii128`
-    # intencoding::Array{UInt32} = zeros(1, neededbits(length(spins), serialisation))
-    # wordwidth = BITSDICT[serialisation]
-    # for (i, b) in pairs(bits)
-    #     # add 2^(n) to the appropriate index of the array
-    #     arrayindex = div(i-1, wordwidth) + 1
-    #     bitexp = (i-1) % wordwidth
-    #     intencoding[arrayindex] += b * 2^(bitexp)
-    # end
 
     # there are 128 ASCII characters, but only 94 of them [33, 126]
     # are writable characters that are not controls or whitespace.
@@ -101,7 +89,10 @@ Deserializes a string into a list of spin values.
 Deserializes into a UInt and then converts (0 -> 1, 1 -> -1)
 
 Serialisation schemes:
-`ascii128`: Converts the set of spin values into a binary number (1 -> 0, -1 -> 1) and converts this to a string of 7-bit-8 characters
+`ascii128`: Converts the set of spin values into a binary number (1 -> 0, -1 -> 1)
+            and converts this to a string of 6-bit integers represented by ascii characters
+            
+            However, uses only characters in the range of 40-126 to prevent control, newline, whitespace, and special characters
 """
 function deserializespins(datastr::String, numparticles::Int)::Array{Int8}
     spins::Array{Int8} = zeros(1, numparticles)
@@ -114,17 +105,17 @@ function deserializespins(datastr::String, numparticles::Int)::Array{Int8}
     spins = (s -> s==1 ? Int8(-1) : Int8(1)).(binspins)
     # remove padding on the end by only returning `numparticles` spins
     return spins[1:numparticles]
-    
 end
-
 
 
 """
 Serializes a list of positions into a compressed string encoding distance relative to initial positions.
 
 Serialisation schemes:
-`ascii128`: Converts the set of spin values into a binary number (1 -> 0, -1 -> 1) and converts this to a string of 7-bit ascii characters.
-However, uses only characters in the range of 40-126 to prevent control, newline, whitespace, and special characters
+`ascii128`: Converts the set of positions (in units of initeger steps of size `dx` [`dx = dt * v_0`] from the particle's initial position) values into a 6-bit signed integer
+            then converts this to a string of 6-bit integers represented ascii characters.
+
+            However, uses only characters in the range of 40-126 to prevent control, newline, whitespace, and special characters
 """
 function serializepositions(positions::Array{<:Number}, initialpositions::Array{<:Number}, simparams::SimulationParameters)::String
     # represent positions as integer number of steps from original Positions
@@ -147,11 +138,9 @@ end
 """
 Deserializes a string into a list of position values.
 
-Deserializes into a UInt and then converts (0 -> 1, 1 -> -1)
-
 Serialisation schemes:
-`utf8`: Converts the set of spin values into a binary number (1 -> 0, -1 -> 1) and converts this to a string of utf-8 characters
-`ascii128`: Converts the set of spin values into a binary number (1 -> 0, -1 -> 1) and converts this to a string of 7-bit-8 characters
+`ascii128`: Converts the string back into 6-bit unsigned integers, then converts to signed integers,
+            and lastly uses the initial particle positions and the size of `dx` to get the original positions.
 """
 function deserializepositions(datastr::String, initialpositions::Array{<:Number}, simparams::SimulationParameters)::Array{Float64}
     # calculate encoding parameters
@@ -194,7 +183,9 @@ function roundpositions(positions::Array{Float64}, simparams::SimulationParamete
 end
 
 
-
+"""
+Take a string of regular data from a file and return the serialized version
+"""
 function serializedatafileline(dataline::String, initialpositions::Array{Float64}, simparams::SimulationParameters, isfirstline::Bool=false)::String
     # load in data, compress, save outstring
     particle_data = parse.(Float64, split(dataline, ","))
@@ -214,5 +205,27 @@ function serializedatafileline(dataline::String, initialpositions::Array{Float64
     end
 
     return compressedline
+end
+
+"""
+Take a string of serialized data from a file and return the deserialized version
+"""
+function deserializedatafileline(dataline::String, initialpositions::Array{Float64}, simparams::SimulationParameters, isfirstline::Bool=false)::String
+    # load in string, separate positions and spins
+    datalinelist = split(dataline, POS_SPINS_SEPARATOR)
+    posstring::String = datalinelist[1]
+    encodedspins::String = datalinelist[2]
+
+    spindata = deserializespins(encodedspins, simparams.numparticles)
+
+    if isfirstline
+        # For the first state, keep the position data and use the deserialized spins
+        return "$(posstring),$(join(spindata, ','))"
+    else
+        # decode the positions as well based on the initial positions
+        positiondata::Array{Float64} = deserializepositions(posstring, initialpositions, simparams)
+        roundedpositionstring = roundpositions(positiondata, simparams)
+        return "$(roundedpositionstring),$(join(spindata, ','))"
+    end
 end
 
