@@ -185,11 +185,24 @@ function json_serialize(simdata::SimulationData)
 end
 
 function Base.:(==)(simdata1::SimulationData, simdata2::SimulationData)::Bool
+    # Check `SimulationParameters` are the same
     if simdata1.simparams != simdata2.simparams
         return false
     end
 
-    ## TODO finish implementing checking data
+    ## Check spins are exactly the same
+    if simdata1.spins != simdata2.spins
+        return false
+    end
+
+    # Check positions are within a certain threshold
+    # i.e. that the max absolute value of the difference is within 1% of a `dx`
+    pcterror = 0.01
+    maxthresh = pcterror * simdata1.simparams.v0 * simdata1.simparams.dt
+    maxdiff = maximum(abs.(simdata1.positions .- simdata2.positions))
+    if maxdiff > maxthresh
+        return false
+    end
 
     return true
 end
