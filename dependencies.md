@@ -3,6 +3,7 @@
 ## Python Packages
 - NumPy
 - MatPlotLib
+- Moviepy
 
 
 # Julia
