@@ -1,6 +1,6 @@
 plots/*
 
-.DS_Store
+*.DS_Store
 
 data1.txt
 
