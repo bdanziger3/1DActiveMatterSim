@@ -1,5 +1,7 @@
 plots/*
 
+.DS_Store
+
 data1.txt
 
 *.png
