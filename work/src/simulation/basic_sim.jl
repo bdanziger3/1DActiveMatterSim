@@ -92,19 +92,16 @@ function runsim(simparams::SimulationParameters, startpositions::Union{Array{Flo
 end
 
 
-function extendsim(inputfilename::String, time::Number)::SimulationData
-    finalstate::SimulationData = loadsimlastline(inputfilename)
+function extendsim(inputfilename::String, time::Number, serialized::Bool=false)::SimulationData
     # get final state of existing file
+    finalstate::SimulationData = loadsimlastline(inputfilename, serialized)
 
+    # make new `SimulationParameters` object for new segment
     newsimparams = newstarts(finalstate.simparams, time)
 
+    # run simulation starting from this state
     extended_simdata = runsim(newsimparams, finalstate.positions, finalstate.spins)
 
     return extended_simdata
-    
-    # run simulation starting from this state
-
-    # save new data by appending it to existing file
-
 end
 

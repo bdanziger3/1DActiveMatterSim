@@ -115,3 +115,7 @@ Active matter community usually using assumption that particles are in an overda
 - Write a general literature overview and send to Till next week. Talk about what people are doing in the field and what people are looking for. Talk about what system I am trying to look at
 
 - Till can meet between 10:20 and 13:00 next week
+
+# 27 June
+
+![Notes from meeting](./Images/june27_meetingnotes.jpg)

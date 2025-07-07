@@ -9,7 +9,7 @@ const DATE_START_INDEX = length("Saved at ") + 1    # 9
 const SEGMENT_HEADER_LINES = 4
 const NLINES_FROM_SIMPARAM_TO_STATES = 2
 
-@enum DataFileType seperatefiles sequentialtxt rowwisetxt json
+@enum DataFileType seperatefiles sequentialtxt rowwisetxt rwtserialized json
 
 function getfirstsaveddate(filename::String)
     file = open(filename, "r")
@@ -211,7 +211,7 @@ function loadnthsimsegment(inputfilename::String, segment_n::Int, startlines::Un
     return simdata
 end
 
-function loadsimlastline(inputfilename::String, segmentstartlines::Union{Nothing, Array{Int}}=nothing)::SimulationData
+function loadsimlastline(inputfilename::String, serialized::Bool=false, segmentstartlines::Union{Nothing, Array{Int}}=nothing)::SimulationData
 """
 Loads the final state of the final segment of a data file.
 """
@@ -220,6 +220,11 @@ Loads the final state of the final segment of a data file.
         segmentstartlines = getsimsegments(inputfilename)[1]
     end
     lastsegmentstartline::Int64 = segmentstartlines[end]
+
+    # if serialized, get the initial positions
+    initialstate = loadsim_nlines(inputfilename, 1, 1, rowwisetxt, true)
+    initialpos::Array{Float64} = initialstate.positions[1,:]
+
 
     # read file
     file = open(inputfilename, "r")
@@ -253,9 +258,17 @@ Loads the final state of the final segment of a data file.
     # read in only one line of data from file
     posmatrix::Matrix{Float64} = zeros(1, simparams.numparticles)
     spinsmatrix::Matrix{Int8} = zeros(1, simparams.numparticles)
-    
+    particle_data::Array{Float64} = zeros(1, 2 * simparams.numparticles)
     dataline = readline(file)
-    particle_data::Array{Float64} = parse.(Float64, split(dataline, ","))
+
+
+    if serialized
+        deserializeddataline = deserializedatafileline(dataline, initialpos, simparams)
+        particle_data = parse.(Float64, split(deserializeddataline, ","))
+    else
+        particle_data = parse.(Float64, split(dataline, ","))
+    end
+
     posmatrix[1,:] = copy(particle_data[1:simparams.numparticles])
     spinsmatrix[1,:] = Int8.(copy(particle_data[simparams.numparticles+1:end]))
 
@@ -520,6 +533,30 @@ function savesim(simdata::SimulationData, outputfilename::String, filetype::Data
             particlestates[:,simdata.simparams.numparticles+1:end] = simdata.spins
             writedlm(io, particlestates, ",")
         end
+    elseif filetype == rwtserialized
+        open(filenametouse, "w") do io
+            println(io, "Row Wise txt")  # Row Wise .txt
+            println(io, "Saved at $(round(now(), Dates.Second(1)))")  # Timestamp
+            println(io, "Simulation Parameters")
+            println(io, csv_serialize(simdata.simparams))
+            println(io, "Particle States ([positions], [spins])")
+            # serialize particle states and print to file
+
+            # write first line
+            roundedpositionstring = roundpositions(simdata.positions[1,:], simdata.simparams)
+            spinsstring = serializespins(simdata.spins[1,:])
+            compressedline = "$(roundedpositionstring)$(POS_SPINS_SEPARATOR)$(spinsstring)"
+            println(io, compressedline)
+
+            # write remaining lines
+            nsavesleft = getnsaves(simdata.simparams) - 1
+            @showprogress 1 "Printing data to file..." for i in 1:nsavesleft
+                positionstring = serializepositions(simdata.positions[i,:], simdata.positions[1,:], simdata.simparams)
+                spinsstring = serializespins(simdata.spins[i,:])
+                compressedline = "$(positionstring)$(POS_SPINS_SEPARATOR)$(spinsstring)"
+                println(io, compressedline)
+            end
+        end
     end
 
 end
@@ -530,7 +567,7 @@ Saves simulation data from a `SimulationData` object to an existing data file.
 
 Appends to the bottom of an existing file with a new header for the timestamp and Simulation Parameters
 """
-function appendsim(simdata::SimulationData, outputfilename::String)         
+function appendsim(simdata::SimulationData, outputfilename::String, serialize::Bool=false)         
     # Only works with Row Wise txt files
     # Read file to make sure it's the right type
     file = open(outputfilename, "r")
@@ -538,17 +575,45 @@ function appendsim(simdata::SimulationData, outputfilename::String)
     @assert contains(lowercase(firstline), "row wise txt") "Incorrect file header on first line. File not identified as Row Wise txt"
     close(file)
 
+    # if serializing data, read initial positions
+
+    initialpos::Array{Float64} = zeros(simdata.simparams.numparticles)
+    if serialize
+        initialstate::SimulationData = loadsim_nlines(outputfilename, 1, 1, rowwisetxt, true)
+        initialpos = initialstate.positions[1,:]
+    end
+
     # now append new data to the end
     open(outputfilename, "a") do io
         println(io, "Saved at $(round(now(), Dates.Second(1)))")  # Timestamp
         println(io, "Simulation Parameters")
         println(io, csv_serialize(simdata.simparams))
         println(io, "Particle States ([positions], [spins])")
-        # construct particle state matrix by concatenating states of position and spin
-        particlestates::Matrix{Any} = zeros(getnsaves(simdata.simparams), 2 * simdata.simparams.numparticles)
-        particlestates[:,1:simdata.simparams.numparticles] = simdata.positions
-        particlestates[:,simdata.simparams.numparticles+1:end] = simdata.spins
-        writedlm(io, particlestates, ",")
+
+        if serialize
+            # serialize particle states and print to file
+
+            # write first line
+            roundedpositionstring = roundpositions(simdata.positions[1,:], simdata.simparams)
+            spinsstring = serializespins(simdata.spins[1,:])
+            compressedline = "$(roundedpositionstring)$(POS_SPINS_SEPARATOR)$(spinsstring)"
+            println(io, compressedline)
+
+            # write remaining lines
+            nsaves = getnsaves(simdata.simparams)
+            @showprogress 1 "Printing data to file..." for i in 2:nsaves
+                positionstring = serializepositions(simdata.positions[i,:], initialpos, simdata.simparams)
+                spinsstring = serializespins(simdata.spins[i,:])
+                compressedline = "$(positionstring)$(POS_SPINS_SEPARATOR)$(spinsstring)"
+                println(io, compressedline)
+            end
+        else
+            # construct particle state matrix by concatenating states of position and spin
+            particlestates::Matrix{Any} = zeros(getnsaves(simdata.simparams), 2 * simdata.simparams.numparticles)
+            particlestates[:,1:simdata.simparams.numparticles] = simdata.positions
+            particlestates[:,simdata.simparams.numparticles+1:end] = simdata.spins
+            writedlm(io, particlestates, ",")
+        end
     end
 end
 
