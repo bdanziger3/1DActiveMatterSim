@@ -195,5 +195,14 @@ end
 
 
 
+"""
+Calculates the particle density distribution
+"""
+function positiondensity(simdata::SimulationData)
+
+end
+
+
+
 
     
