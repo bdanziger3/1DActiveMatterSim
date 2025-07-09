@@ -119,3 +119,24 @@ Active matter community usually using assumption that particles are in an overda
 # 27 June
 
 ![Notes from meeting](./Images/june27_meetingnotes.jpg)
+
+
+
+
+# 7 July
+Make histogram with bigger bin size
+and then do it with weighting the densities by number of particles
+
+
+Correlation with one particle with itself at different times
+
+Correlation with one particle with its neighbors at the same time
+
+Do these on longer data with yes/no interaction
+
+
+Make a presentation with plots and summaries of what I did each week
+
+
+
+$\log(n)$

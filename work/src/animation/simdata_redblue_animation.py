@@ -136,18 +136,23 @@ def make_mp4s_of_dir(dir_path:str):
         if file_name.endswith(".txt"):
             full_file_path = os.path.join(dir_path, file_name)
             print(f"Animating and Saving {full_file_path}...")
-            sim_animate(full_file_path, show=False, save=True, fps=100, y_offset=True, delete_gif=True)
+            
+            try:
+                sim_animate(full_file_path, show=False, save=True, fps=100, y_offset=True, delete_gif=True)
+            except:
+                print(f"Could not animate sim at {file_name}.")
+            
 
 
 
 
-noint11 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/22-6/N10000-nointeraction-t1-sn0.01.txt"
+noint1 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/8-7/N1000-B100.0-nointeraction-100-T100.txt"
 # sim_animate(noint11, SHOW, SAVE, fps=100, y_offset=True, delete_gif=True)
 # sim_animate(new_rowwise_short, SHOW, SAVE, fps=600, y_offset=True)
 # sim_animate(new_rowwise_sn, SHOW, SAVE, fps=600, y_offset=True)
 # sim_animate(example_align_intearaction_sim, SHOW, SAVE)
 
 
-data_dir = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/26-6"
+data_dir = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/8-7/"
 
 make_mp4s_of_dir(data_dir)

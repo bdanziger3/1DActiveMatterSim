@@ -1,6 +1,7 @@
 using CSV
 
 include("../simulation/basic_sim.jl")
+include("./histogram_helper.jl")
 
 
 
@@ -194,12 +195,75 @@ function orientationcorrelation(simdata::SimulationData, settletime::Float64=-1.
 end
 
 
+"""
+Takes a list of positions and bins them based on the `binsettings`,
+then counts the number of particles in each bin and divides by the width of the bin.
+Returns an array of particle densities for each bin with the first bin starting at -boxwidth/2 and the final bin ending at boxwidth/2.
+
+By default, runs the analysis on the entire simulation data.
+set `timeindex` to the index of the time in the simulation to get the data for a single frame.
+"""
+function posdensity_fixedbins(simdata::SimulationData, timeindex::Int64=-1)::Array{Float64}
+    # binwidth with respect to the minimum space step `dx`
+    dx_per_bin::Float64 = 10
+    posbinsettings::BinSettings = positionbinsettings(simdata.simparams.boxwidth, dx_per_bin * snapshot_dx(simdata.simparams))
+
+    # use entire position matrix by default
+    local positions::Array{Float64}
+    local normalization::Float64
+    if timeindex == -1
+        positions = simdata.positions
+        normalization = getnsaves(simdata.simparams) * posbinsettings.binwidth
+    elseif timeindex > 0
+        positions = simdata.positions[timeindex, :]
+        normalization = posbinsettings.binwidth
+    else
+        @assert false "Unexpected value for `timeindex`. Must be either -1 or a positive integer."
+    end
+
+    # bin the particle positions
+    posbincounts::Array{Int64} = bincounts(positions, posbinsettings)
+
+    # convert to particle density (particles / unit of length)
+    particledensities = posbincounts ./ normalization
+
+    return particledensities
+end
 
 """
-Calculates the particle density distribution
+Gets particle densities and then bins that data to get histogram data bin counts
 """
-function positiondensity(simdata::SimulationData)
+function posdensityhistcounts(simdata::SimulationData, timeindex::Int64=-1)::Array{Float64}
+    n_density_bins::Int64 = 100
+    
+    particledensities = posdensity(simdata, timeindex)::Array{Float64}
 
+    # now bin the particle densities
+    densitiesbinsettings = BinSettings(maximum(particledensities), n_density_bins)
+    posdensitycounts::Array{Int64} = bincounts(particledensities, densitiesbinsettings)
+
+    return posdensitycounts    
+end
+
+"""
+Takes a simulation set of positions and, at each timestep, bins them based on the `binsettings`.
+Then counts the number of particles in each bin and divides by the width of the bin to get the particle densities of each bin at each timestep.
+Remembers the occurence of particle densities regardless of the position of the bin, and counts over all timesteps.
+Returns an array of particle densities (of size nsaves x nbins)
+
+"""
+function particledensity_alltimes(simdata::SimulationData, binwidth::Float64=1.0)::Array{Float64}
+    posbinsettings::BinSettings = positionbinsettings(simdata.simparams.boxwidth, binwidth)
+
+    # bin the particle positions at each timestep
+    nsaves = getnsaves(simdata.simparams)
+    posbindensities::Matrix{Float64} = zeros(nsaves, posbinsettings.nbins)
+    @showprogress 1 "Calculating Particle Densities..." for i in 1:nsaves
+        # count particles in each bin and divide by binwidth to get particle densities
+        posbindensities[i,:] = bincounts(simdata.positions[i,:], posbinsettings) ./ posbinsettings.binwidth
+    end
+
+    return posbindensities
 end
 
 

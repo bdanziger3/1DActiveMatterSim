@@ -1,5 +1,6 @@
 include("../simulation/basic_sim.jl")
 include("./data_serialisation.jl")
+include("../utils/paths.jl")
 # include("./sim_structs.jl")
 
 using JSON
@@ -61,11 +62,7 @@ Checks if data directory exists for the specified date. If not, makes the direct
 By default checks for the current date.
 """
 function getdatedir(date::Date=today(), currdir::String=pwd())
-    while basename(currdir) != "work"
-        currdir = dirname(currdir)
-    end
-
-    newdirname = "$(currdir)/data/$(Dates.day(date))-$(Dates.month(date))"
+    newdirname = "$(getrootabspath())/work/data/$(Dates.day(date))-$(Dates.month(date))"
     if !isdir(newdirname)
         # if dir doesn't exist, make it and return the name
         mkdir(newdirname)
@@ -73,6 +70,11 @@ function getdatedir(date::Date=today(), currdir::String=pwd())
 
     return newdirname
 
+end
+
+
+function getsimdatafilename(simparams::SimulationParameters)::String
+    return "$(getdatedir())/N$(simparams.numparticles)-B$(simparams.boxwidth)-$(simparams.interaction)-$(Int64(round(simparams.interactionfliprate)))-T$(Int64(round(simparams.totaltime))).txt" 
 end
 
 """
