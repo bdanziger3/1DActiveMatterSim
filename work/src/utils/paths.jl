@@ -11,6 +11,7 @@
 
 
 const ROOT_DIR_ABS_PATH1::String = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev"
+const ROOT_DIR_ABS_PATH2::String = "/home/s2696227/Documents/Dissertation/1DActiveSolids"
 
 const ROOT_DIRNAME_BD = "Dev"
 const ROOT_DIRNAME = "1DActiveSolids"
@@ -33,7 +34,7 @@ end
 Gets the absolute path on your machine to a file given as a relative path to the root directory `1DActiveSolids`
 """
 function relpath2abspath(path::String)::String
-    joinpath(getrootabspath(), path)
+    return joinpath(getrootabspath(), path)
 end
 
 """

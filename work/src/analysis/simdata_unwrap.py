@@ -11,6 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from simulation.sim_structs import SimulationData, SimulationParameters
 from file_management.simdata_files import loadsim, DataFileType
 from utils.print_tools import ProgressBar
+from utils.paths import fix_path
 
 
 SAVE = False
@@ -18,10 +19,10 @@ SHOW = True
 INTERACTION = "None"
 save_filepath = "no_interaction.gif"
 
-example_no_intearaction_sim2 = "work/16-5/16-5-N100-no-interaction-2_simdata.txt"
-example_no_intearaction_sim = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/basic_N100_t100000.0_interaction_none_T0.3333333333333333_sim_simdata.txt"
-example_align_intearaction_sim = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/basic_N100_t100000.0_interaction_alignsimple_T0.3333333333333333_sim_simdata.txt"
-example_align_intearaction_sim2 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/16-5/16-5-N100-align-simplelong_simdata.txt"
+example_no_intearaction_sim2 = fix_path("work/16-5/16-5-N100-no-interaction-2_simdata.txt")
+example_no_intearaction_sim = fix_path("/work/basic_N100_t100000.0_interaction_none_T0.3333333333333333_sim_simdata.txt")
+example_align_intearaction_sim = fix_path("/work/basic_N100_t100000.0_interaction_alignsimple_T0.3333333333333333_sim_simdata.txt")
+example_align_intearaction_sim2 = fix_path("/work/16-5/16-5-N100-align-simplelong_simdata.txt")
 
 
 def simdata_unwrap(sim_data:SimulationData):
@@ -93,7 +94,7 @@ def sim_wrap_buffer(file_str:str, jump_thresh:float = -1, save:bool = False):
 
 
 t0 = time.time()
-unwrapped_pos = sim_unwrap_preload(example_align_intearaction_sim2, -1, SHOW, SAVE)
+unwrapped_pos = sim_unwrap_preload(example_align_intearaction_sim2, -1, SAVE)
 print(f"total time: {time.time() - t0}")
 
 

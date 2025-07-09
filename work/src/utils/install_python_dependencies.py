@@ -14,6 +14,8 @@ def main():
 
     lines = dependencies_file.readlines()
 
+    dependencies_file.close()
+
     reading_pkgs = False
     for i, line in enumerate(lines):
         if "python packages" in line.lower():

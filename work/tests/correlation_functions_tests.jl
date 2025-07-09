@@ -3,6 +3,8 @@ using PyCall
 
 include("../src/analysis/correlation_functions.jl")
 include("../src/file_management/simdata_files.jl")
+include("../src/utils/.paths.jl")
+
 
 # run basic sim
 
@@ -98,12 +100,12 @@ function ocf_test()
 
     nparticles = 10000
 
-    test_interaction_file_300 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/22-6/N10000-alignsimple-t1-sn0.01.txt"
-    test_interaction_file_150 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/23-6/N10000-alignsimple-150-t0.5-sn0.01.txt"
-    test_interaction_file_60 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/23-6/N10000-alignsimple-t0.5-sn0.01.txt"
-    test_interaction_file_30 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/23-6/N10000-alignsimple-t0.5-sn0.01_0.txt"
-    test_interaction_file_10 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/23-6/N10000-alignsimple-10-t0.5-sn0.01.txt"
-    test_no_interaction_file = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/22-6/N10000-nointeraction-t1-sn0.01.txt"
+    test_interaction_file_300 = fixpath("/work/data/22-6/N10000-alignsimple-t1-sn0.01.txt")
+    test_interaction_file_150 = fixpath("/work/data/23-6/N10000-alignsimple-150-t0.5-sn0.01.txt")
+    test_interaction_file_60 = fixpath("/work/data/23-6/N10000-alignsimple-t0.5-sn0.01.txt")
+    test_interaction_file_30 = fixpath("/work/data/23-6/N10000-alignsimple-t0.5-sn0.01_0.txt")
+    test_interaction_file_10 = fixpath("/work/data/23-6/N10000-alignsimple-10-t0.5-sn0.01.txt")
+    test_no_interaction_file = fixpath("/work/data/22-6/N10000-nointeraction-t1-sn0.01.txt")
 
     interactionfliprates = [0, 10, 30, 60, 150, 300]
     legendlabels = string.(interactionfliprates)
@@ -139,9 +141,9 @@ function ocf_test()
 
     plotfilepath::String = ""
     if LOG
-        plotfilepath = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/correlation_data/N10000-ocf-logplot.pdf"
+        plotfilepath = fixpath("/work/data/correlation_data/N10000-ocf-logplot.pdf")
     else
-        plotfilepath = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/correlation_data/N10000-ocf.pdf"
+        plotfilepath = fixpath("/work/data/correlation_data/N10000-ocf.pdf")
     end
 
     # plt.savefig(plotfilepath, bbox_inches = "tight",pad_inches=0.01)

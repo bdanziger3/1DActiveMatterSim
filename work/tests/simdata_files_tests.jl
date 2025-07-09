@@ -1,4 +1,6 @@
 include("./test_fixtures.jl")
+include("../src/utils/.paths.jl")
+
 
 
 # # tests for saving and loading data filestring
@@ -141,8 +143,8 @@ function test_load_extended_file()
     # make a file with 3 sim segments
 
     # extended sim file
-    datafile = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/tests/test_data/test_extendsim_sd1.txt"
-    datafile_long = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/22-6/N10000-nointeraction-t100-sn0.01.txt"
+    datafile = fixpath("/work/tests/test_data/test_extendsim_sd1.txt")
+    datafile_long = fixpath("/work/data/22-6/N10000-nointeraction-t100-sn0.01.txt")
     # run simple simulation and try to 
     t0 = time()
     simdata = getsimsegments(datafile)

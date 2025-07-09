@@ -6,7 +6,7 @@
 - Moviepy
 
 
-# Julia
+# Julia Packages
 - CSV v0.10.15
 - DataFrames v1.7.0
 - DataStructures v0.18.20
