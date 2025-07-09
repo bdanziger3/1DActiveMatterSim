@@ -3,6 +3,7 @@ using Dates
 
 include("./basic_sim.jl")
 include("../file_management/simdata_files.jl")
+include("../utils/paths.jl")
 # include("./plot_lib.jl")
 # include("./activesim1d.jl")
 
@@ -20,9 +21,9 @@ boxwidth::Real = 100
 fliprate::Real = 1
 v0::Real = 1
 dt::Real = 1e-4
-totaltime::Real = 100
-interaction = nointeraction
-interactionfliprate = 100
+totaltime::Real = 1
+interaction = alignsimple
+interactionfliprate = 50
 randomstarts = true
 snapshot_dt = 1e-2
 simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate, 0, randomstarts, snapshot_dt)
@@ -34,12 +35,12 @@ data_file = getsimdatafilename(simparams)
 println(data_file)
 simdata = runsim(simparams)
 
-savesim(simdata, data_file, rwtserialized)
+savesim(simdata, data_file, rowwisetxt)
 
 # println("Saved first $(totaltime)s at $(now())")
 
 
-# data_file = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/26-6/N5000-B100-alignsimple-100-t4-sn0.01_comp.txt"
+# data_file = fixpath("/work/data/26-6/N5000-B100-alignsimple-100-t4-sn0.01_comp.txt")
 
 # EXTENDING SIM
 # extended_sd = extendsim(data_file, totaltime, true)
