@@ -551,8 +551,8 @@ function savesim(simdata::SimulationData, outputfilename::String, filetype::Data
             println(io, compressedline)
 
             # write remaining lines
-            nsavesleft = getnsaves(simdata.simparams) - 1
-            @showprogress 1 "Printing data to file..." for i in 1:nsavesleft
+            nsaves = getnsaves(simdata.simparams)
+            @showprogress 1 "Printing data to file..." for i in 2:nsaves
                 positionstring = serializepositions(simdata.positions[i,:], simdata.positions[1,:], simdata.simparams)
                 spinsstring = serializespins(simdata.spins[i,:])
                 compressedline = "$(positionstring)$(POS_SPINS_SEPARATOR)$(spinsstring)"

@@ -109,6 +109,22 @@ function asarray(simparams::SimulationParameters)::Array{Any}
     return ar
 end
 
+function dx(simparams::SimulationParameters)::Float64
+    return simparams.v0 * simparams.dt
+end
+
+function snapshot_dx(simparams::SimulationParameters)::Float64
+    return simparams.v0 * simparams.snapshot_dt
+end
+
+function effectiveinteractionfliprate(simparams::SimulationParameters)::Float64
+    if simparams.interaction == nointeraction
+        return 0.0
+    else
+        return simparams.interactionfliprate
+    end
+end
+
 function assertparams(simparams::SimulationParameters)::Bool
     @assert getntimes(simparams) == size(gettimes(simparams))[1] "error in construction of times in `gettimes()`."
     @assert simparams.dt <= simparams.totaltime "timestep `dt` must be less than `totaltime`."
