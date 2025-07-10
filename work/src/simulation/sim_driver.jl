@@ -21,7 +21,7 @@ boxwidth::Real = 100
 fliprate::Real = 1
 v0::Real = 1
 dt::Real = 1e-4
-totaltime::Real = 1
+totaltime::Real = 20
 interaction = alignsimple
 interactionfliprate = 50
 randomstarts = true
@@ -29,29 +29,33 @@ snapshot_dt = 1e-2
 simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate, 0, randomstarts, snapshot_dt)
 
 
-# STARTING SIM
-data_file = getsimdatafilename(simparams)
+#### STARTING SIM
+# data_file = getsimdatafilename(simparams)
 
-println(data_file)
-simdata = runsim(simparams)
+# println(data_file)
+# simdata = runsim(simparams)
 
-savesim(simdata, data_file, rowwisetxt)
+# savesim(simdata, data_file, rwtserialized)
 
 # println("Saved first $(totaltime)s at $(now())")
 
 
-# data_file = fixpath("/work/data/26-6/N5000-B100-alignsimple-100-t4-sn0.01_comp.txt")
 
-# EXTENDING SIM
-# extended_sd = extendsim(data_file, totaltime, true)
-# appendsim(extended_sd, data_file, true)
-# println("Saved extended sim 1 at $(now())")
 
-# for i in 1:10
-#     extended_sd = extendsim(data_file, totaltime)
-#     appendsim(extended_sd, data_file)
-#     println("Saved extended sim $(i) at $(now())")
-# end
+
+
+#### EXTENDING SIM
+data_file = fixpath("work/data/9-7/N1000-B100.0-alignsimple-50-T10.txt")
+serialized = true
+extended_sd = extendsim(data_file, totaltime, serialized)
+appendsim(extended_sd, data_file, serialized)
+println("Saved extended sim 1 at $(now())")
+
+for i in 1:10
+    extended_sd = extendsim(data_file, totaltime, serialized)
+    appendsim(extended_sd, data_file, serialized)
+    println("Saved extended sim $(i) at $(now())")
+end
 
 
 
