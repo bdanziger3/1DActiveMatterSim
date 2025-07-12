@@ -11,6 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from simulation.sim_structs import SimulationData, SimulationParameters
 from file_management.simdata_files import loadsim, loadsim_n_lines
+from utils.paths import fix_path
 
 SPIN_UP_COLOUR = "blue"
 SPIN_DOWN_COLOUR = "red"
@@ -146,13 +147,13 @@ def make_mp4s_of_dir(dir_path:str):
 
 
 
-noint1 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/8-7/N1000-B100.0-nointeraction-100-T100.txt"
 # sim_animate(noint11, SHOW, SAVE, fps=100, y_offset=True, delete_gif=True)
 # sim_animate(new_rowwise_short, SHOW, SAVE, fps=600, y_offset=True)
 # sim_animate(new_rowwise_sn, SHOW, SAVE, fps=600, y_offset=True)
 # sim_animate(example_align_intearaction_sim, SHOW, SAVE)
 
 
-data_dir = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/8-7/"
+# data_dir = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/8-7/"
+density_sweep_dir = fix_path("work/data/sweeps/densitysweep/uncompressed")
 
-make_mp4s_of_dir(data_dir)
+make_mp4s_of_dir(density_sweep_dir)

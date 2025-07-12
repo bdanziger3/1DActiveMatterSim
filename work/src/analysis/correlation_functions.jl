@@ -156,9 +156,8 @@ Returns a matrix givng (t,C_p(t)) data
 function orientationcorrelation(simdata::SimulationData, settletime::Float64=-1.0)::Matrix{Float64}
     # returns the Orientation Corelation as a function of time throughout one simulation
 
-
     times = gettimes(simdata.simparams)
-    ntimes = getntimes(simdata.simparams)
+    nsaves = getnsaves(simdata.simparams)
     spins = copy(simdata.spins)
 
     # if no `settletime` provided, defaults to half of the total time
@@ -170,7 +169,7 @@ function orientationcorrelation(simdata::SimulationData, settletime::Float64=-1.
     settleindex = getindexoftime(simdata.simparams, settletime)
         
     mintimestep::Float64 = simdata.simparams.snapshot_dt
-    maxtimestep::Float64 = simdata.simparams.totaltime / 2
+    maxtimestep::Float64 = simdata.simparams.totaltime - settletime
     dtarray::Array{Float64} = collect(mintimestep:mintimestep:maxtimestep)
     ndts::Int64 = size(dtarray)[1]
 
@@ -179,13 +178,29 @@ function orientationcorrelation(simdata::SimulationData, settletime::Float64=-1.
     dt = mintimestep
     t0 = settleindex
 
-    # evaluate for each interval dt, incremented by number of `mintimestep`s 
-    for ndt in 0:ndts
-        
+
+
+    # evaluate for each interval dt, incremented by number of `mintimestep`s
+    # this is the x-axis data for the Orientation Correlation Function
+    @showprogress 1 "Calculating Orientation Self-Correlation Densities..." for ndt in 0:ndts        
+        # reset `t0` back to first index we're measuring
+        t0 = settleindex
+
+        # this is the y-axis data for the Orientation Correlation Function
         t0ocsum = 0
 
+        # for each time interval dt, sweep and average over all possible start times t0
+        # i.e. sliding window integration average
+        # calculate number of start times
+        nt0s = (nsaves - settleindex) - (ndt - 1)
+        for t0_i in 0:(nt0s - 1)
+            t0ocsum += sum(simdata.spins[settleindex + t0_i, :] .* simdata.spins[settleindex + t0_i + ndt, :])
+        end
 
-        t0ocsum += sum(simdata.spins[t0, :] .* simdata.spins[t0+ndt, :]) / simdata.simparams.numparticles
+        # now divide by total number of products taken to normalize to +-1.
+        t0ocsum /= (simdata.simparams.numparticles * nt0s)
+
+
 
         ocmat[1, ndt+1] = ndt * mintimestep
         ocmat[2, ndt+1] = t0ocsum

@@ -140,3 +140,27 @@ Make a presentation with plots and summaries of what I did each week
 
 
 $\log(n)$
+
+
+
+
+# 11 July
+
+
+- Sweep interactoin strength
+    - e.g. keep `boxwidth=100`, `Numparticles=1000` and sweep `interactionfliprate`
+
+
+- Orientation self-correlation plots:
+    - interesting that they decay and don't stay in their flock. Look at animation to see if 1 particle goes back and forth or stays
+
+    - only need to plot until timescale of ~1-10, after that is just noise
+
+    - order lines in correct order
+
+- Scale parameters semi-logarithmically to get a good look at different magnitudes
+    - e.g. [1, 2, 5, 10, 20, 50, 100, 200, 500]
+
+
+
+- Animation with 1 particle highlighted its own color to see if it's bounding back and forth or staying in the flock
