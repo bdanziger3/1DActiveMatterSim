@@ -30,7 +30,7 @@ def print_save_progress(current_frame: int, total_frames: int):
     pct_frames = max(1, total_frames // 100)
     if current_frame % pct_frames == 0:
         print(f"\033[KRendering Progress: {np.round(100 * current_frame / total_frames, 2)} %", end="\r")
-    if (total_frames - current_frame) / total_frames < .3: 
+    if (total_frames - current_frame) / total_frames < .01 or (total_frames - current_frame) <= 2: 
         print(f"\033[KSaving File...", end="\r")
 
 def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 30, y_offset=False, save_filepath=None, debug_mode=None, delete_gif=False):    
@@ -150,10 +150,12 @@ def make_mp4s_of_dir(dir_path:str):
 # sim_animate(noint11, SHOW, SAVE, fps=100, y_offset=True, delete_gif=True)
 # sim_animate(new_rowwise_short, SHOW, SAVE, fps=600, y_offset=True)
 # sim_animate(new_rowwise_sn, SHOW, SAVE, fps=600, y_offset=True)
-# sim_animate(example_align_intearaction_sim, SHOW, SAVE)
 
 
 # data_dir = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/8-7/"
-density_sweep_dir = fix_path("work/data/sweeps/densitysweep/uncompressed")
+density_sweep_dir = fix_path("work/data/12-7")
 
-make_mp4s_of_dir(density_sweep_dir)
+datafile = fix_path("work/data/12-7/N1000-B100-alignsimple-300-t100-sn0.01_0.txt")
+
+sim_animate(datafile, show=False, save=True, fps=100, y_offset=True, delete_gif=True)
+# make_mp4s_of_dir(density_sweep_dir)
