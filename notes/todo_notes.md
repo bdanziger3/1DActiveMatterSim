@@ -17,3 +17,9 @@ Changed Python code to load data files that have `snapshot_dt != dt`. But still 
 - Fix extending of simulations to combine SimulationData objects to efficiently read and do correlation functions on extended sims.
 
 - Run longer sims on larger boxes and do MSD and polar order on them
+
+
+
+## July 14
+
+Convert old serialized files to new serialization method.
