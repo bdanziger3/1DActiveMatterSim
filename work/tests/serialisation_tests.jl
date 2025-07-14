@@ -13,12 +13,12 @@ function test_spinserialisation()
     # println(spins)
     
     t0 = time()
-    serializedstr_ascii = serializespins(spins, ascii128)
+    serializedstr_ascii = serializespins(spins)
     t1 = time()
     # println(serializedstr_ascii)
 
     td0 = time()
-    newspins_ascii = deserializespins(serializedstr_ascii, N, ascii128)
+    newspins_ascii = deserializespins(serializedstr_ascii, N)
     td1 = time()
 
     @assert newspins_ascii == spins "ASCII deserialized spins are not the same as the initial spins"
@@ -34,7 +34,7 @@ function test_positionserialisation()
 
 
     # run simple simulation if data file does not exist
-    datafile_path = "test_data/serialisation_test_data.txt"
+    datafile_path = fixpath("work/tests/test_data/serialisation_test_data.txt")
     if !isfile(datafile_path)
         simdata = runsim(simparams)
         savesim(simdata, datafile_path, rowwisetxt, true)
@@ -72,7 +72,7 @@ function test_positionserialisation()
 
     # check that deserialized positions are the same as the originals
     threshold = simparams.v0 * simparams.dt * .001  # within 0.1% of dx 
-    @assert all(abs.(positions_deserialized .- loadedsim.positions) .<= threshold) "Deserialized positions do not equal the original positions."
+    @assert all(wrap(abs.(positions_deserialized .- loadedsim.positions), simparams.boxwidth) .<= threshold) "Deserialized positions do not equal the original positions."
     
     println("Position Serialization Timing results:\nEncoding: mean: $(sum(encodingtimes) / length(encodingtimes)) seconds, max: $(maximum(encodingtimes)) seconds.\nDecoding: mean: $(sum(decodingtimes) / length(decodingtimes)) seconds, max: $(maximum(decodingtimes))")
 end

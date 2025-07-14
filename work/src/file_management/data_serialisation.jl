@@ -40,8 +40,8 @@ function bitsperpos(simparams::SimulationParameters)::Int64
     maxrelativepos::Int64 = Int64(ceil(simparams.boxwidth / dx))
 
     # calculate how many bits needed to encode the data
-    # (2 * maxrelativepos) + 1 possible relative positions (+ or - direction plus 0)
-    maxposbits::Int64 = Int64(ceil(log2((2 * maxrelativepos) + 1)))
+    # maxrelativepos + 1 possible relative positions (+ or - direction plus 0)
+    maxposbits::Int64 = Int64(ceil(log2(maxrelativepos + 1)))
 
     return maxposbits
 end
@@ -120,16 +120,15 @@ Serialisation schemes:
 function serializepositions(positions::Array{<:Number}, initialpositions::Array{<:Number}, simparams::SimulationParameters)::String
     # represent positions as integer number of steps from original Positions
     dx::Float64 = simparams.v0 * simparams.dt
-    relativepositions::Array{<:Int} = Int64.(round.((positions - initialpositions) / dx))
+    unsignedrelativepositions::Array{<:Int} = Int64.(round.(mod.(positions - initialpositions, simparams.boxwidth) / dx))
 
     # calculate how many 6-bit ASCII characters are needed per position
     charspp::Int64 = charsperpos(simparams)
     
-    # We are encoding as signed ints, so use `base=2^(bits-1)`
-    signedasciiintmatrix = mapreduce(permutedims, vcat, digits.(relativepositions, base=Int8(2^(ASCIIBITS-1)), pad=charspp))
-
+    # We are encoding as unsigned ints, so use `base=2^(bits)`
+    unsignedasciiintmatrix = mapreduce(permutedims, vcat, digits.(unsignedrelativepositions, base=UInt8(2^(ASCIIBITS)), pad=charspp))
     # convert to unsigned ints, shift by `ASCIIMININT`, and convert to chars
-    charmatrix = (x -> x < 0 ? Char(x + 2^ASCIIBITS + ASCIIMININT) : Char(x + ASCIIMININT)).(signedasciiintmatrix)
+    charmatrix = (x -> Char(x + ASCIIMININT)).(unsignedasciiintmatrix)
     stringencoding::String = join(permutedims(charmatrix))
 
     return stringencoding
@@ -151,20 +150,18 @@ function deserializepositions(datastr::String, initialpositions::Array{<:Number}
     positions::Array{Float64} = zeros(1, simparams.numparticles)
     # reshape and convert characters to unsigned ints
     unsignedintmatrix = permutedims(reshape((Int8.(collect(datastr)) .- ASCIIMININT), charspp, :))
-    # convert back into signed ints
-    signedintmatrix = (x -> x > 2^(ASCIIBITS-1) ? x - 2^ASCIIBITS : x).(unsignedintmatrix)
 
     # sum up signed ints (scaled by digit place for a 6-bit signed int) to get relative positions
     sumcol::Array{Int64} = zeros(simparams.numparticles, 1)
     
     for i in 1:charspp
-        sumcol += Int64.(signedintmatrix[:,i]) * (2^((ASCIIBITS - 1) * (i-1)))
+        sumcol += Int64.(unsignedintmatrix[:,i]) * (2^((ASCIIBITS) * (i-1)))
     end
     
     # convert relative positions back to absolute positions
     positions = (sumcol * dx) .+ initialpositions
 
-    return positions
+    return wrap(positions, simparams.boxwidth)
 end
 
 """
