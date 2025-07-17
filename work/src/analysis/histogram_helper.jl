@@ -1,11 +1,11 @@
-"""
-histogram_helper.jl
-Blake Danziger
-1D Active Solids
-MSc Theoretical Physics Dissertation (2025)
+########################
+# histogram_helper.jl
+# Blake Danziger
+# 1D Active Solids
+# MSc Theoretical Physics Dissertation (2025)
 
-File containing helper functions for building histograms and distribution data.
-"""
+# File containing helper functions for building histograms and distribution data.
+########################
 
 using StatsBase
 
