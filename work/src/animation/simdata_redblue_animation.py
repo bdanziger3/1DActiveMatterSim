@@ -16,7 +16,6 @@ from utils.paths import fix_path
 SPIN_UP_COLOR = "blue"
 SPIN_DOWN_COLOR = "red"
 FOLLOWING_COLOR = "darkorchid"
-SPIN = "red"
 ALPHA = 0.3
 PLOT_YLIM = 0.2
 PLOT_DOT_SIZE = 300
