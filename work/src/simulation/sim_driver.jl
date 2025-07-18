@@ -45,16 +45,13 @@ simdata = runsim(simparams)
 
 
 # # #### EXTENDING SIM
-# data_file = fixpath("work/data/12-7/N1000-B100-alignsimple-300-t100-sn0.01.txt")
 # serialized = false
-# extended_sd = extendsim(data_file, 99.99, serialized)
-# appendsim(extended_sd, data_file, serialized)
-# println("Saved extended sim 1 at $(now())")
+# # extended_sd = extendsim(data_file, 1, serialized)
+# # appendsim(extended_sd, data_file, serialized)
 
 # for i in 1:10
 #     extended_sd = extendsim(data_file, totaltime, serialized)
 #     appendsim(extended_sd, data_file, serialized)
-#     println("Saved extended sim $(i) at $(now())")
 # end
 
 

@@ -2,12 +2,15 @@ import sys, os
 from enum import Enum
 import numpy as np
 import time
+import subprocess
 
 # add src dir to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from simulation.sim_structs import SimulationData, SimulationParameters
 from utils.print_tools import ProgressBar
+from utils.paths import fix_path
+from utils.script_paths import CONVERT_SIMDATA
 
 DATE_START_INDEX = len("Saved at ")
 
@@ -318,3 +321,98 @@ def save_sim(sim_data:SimulationData, output_fn:str, file_type:DataFileType=Data
         write_dlm(f"{sim_datafile_prefix}_t.txt", sim_data.times, ",")
     
     fn.close()
+
+def get_simfile_type(input_file_name:str) -> tuple[int, bool]:
+    """
+    Determines if an existing simulation data file needs to be compressed and/or deserialized.
+
+    Returns a tuple of whether the file is compressed, and how many segments are in the file.
+    tuple[int, bool]: (nsegments, iscompressed)
+    """
+    # initialize outputs
+    n_segments:int = 0
+    is_compressed:bool = False
+
+    # get number of segments
+    file = open(input_file_name)
+
+    curr_line = file.readline()
+    next_line_is_data = False
+
+    while curr_line != "":
+        # if at the first data line, check if the file is compressed
+        if next_line_is_data:
+            # If there is a space ` ` separating the position and spin data, it is compressed
+            if " " in curr_line:
+                is_compressed = True
+            # once done with this line we don't need to check again
+            next_line_is_data = False
+
+
+        # add segment if a new segment
+        if "particle states" in curr_line.lower():
+            n_segments += 1
+
+            if n_segments == 1:
+                # at first segment header, flag that first data line is next
+                next_line_is_data = True
+
+
+        # read next line
+        curr_line = file.readline()
+
+    file.close()
+
+    return (n_segments, is_compressed)
+
+
+# convert data files by calling julia file
+def serialize_file(input_file_path:str, output_file_path:str):
+    results = subprocess.run(["julia", CONVERT_SIMDATA, "-s", input_file_path, output_file_path], capture_output=True, text=True)
+    return results.stdout.strip()
+
+def deserialize_file(input_file_path:str, output_file_path:str):
+    results = subprocess.run(["julia", CONVERT_SIMDATA, "-d", input_file_path, output_file_path], capture_output=True, text=True)
+    return results.stdout.strip()
+
+def collapse_file(input_file_path:str, output_file_path:str):
+    results = subprocess.run(["julia", CONVERT_SIMDATA, "-c", input_file_path, output_file_path], capture_output=True, text=True)
+    return results.stdout.strip()
+
+
+def prepare_simfile(input_file_path:str) -> str:
+    """
+    Check if simulation data file is only 1 segment and deserialized.
+    If not, collapse and/or deserialize it.
+
+    This prepares a data file that can be loaded by the Python analysis, animation, and plotting functions.
+    """
+    # check if file is collapsed and uncompressed
+    (n_segments, is_compressed) = get_simfile_type(input_file_path)
+    # if collapsed and uncompressed, file is good to be animated
+    if n_segments == 1 and not is_compressed:
+        return input_file_path
+    
+    # if more than 1 segment, collapse it
+    if n_segments == 1:
+        collapsed_file_path = input_file_path
+        temp_collapsed = False
+    else:
+        # collapse file
+        collapsed_file_path = collapse_file(input_file_path, f"{input_file_path[:-4]}_TEMP_COLLAPSED.txt")
+        temp_collapsed = True
+    
+    # if file is compressed, deserialize it
+    if is_compressed:
+        # uncompress file
+        actual_output_file_path = deserialize_file(collapsed_file_path, f"{collapsed_file_path[:-4]}_TEMP_UNCOMPRESSED.txt")
+
+        # if collapsed before deserialized, then delete temporary collapsed file
+        if temp_collapsed:
+            os.remove(collapsed_file_path)
+
+    else:
+        actual_output_file_path = collapsed_file_path
+
+    # return collapsed and deserialized file path
+    return actual_output_file_path

@@ -863,3 +863,44 @@ function loadcompressedfile(inputfilename::String)::SimulationData
     simdata = SimulationData(simparams, getsavetimes(simparams), posmatrix, spinsmatrix)
     return simdata
 end
+
+
+"""
+Determines if an existing simulation data file needs to be compressed and/or deserialized.
+
+Returns a tuple of whether the file is compressed, and how many segments are in the file.
+Tuple{Int, Bool}: (nsegments, iscompressed)
+"""
+function getsimfiletype(inputfilename::String)::Tuple{Int, Bool}
+    # initialize outputs
+    nsegments::Int = 0
+    iscompressed::Bool = false
+
+    # get segments data
+    simstarts, _, _, _ = getsimsegments(inputfilename)
+    nsegments = length(simstarts)
+
+    # check if file is compressed by seeing if the particle state data has spaces in it
+    datafile = open(inputfilename)
+    line = readline(datafile)
+    # Check that data file header is correct
+    @assert (contains(lowercase(line), "row wise txt") || contains(lowercase(line), "rowwise txt")) "Rowwisetxt data file does not have correct first line. File may be corrupted."
+    
+    # skip lines until start of particle data
+    for _ in 1:SEGMENT_HEADER_LINES
+        line = readline(datafile)
+    end
+    @assert contains(lowercase(line), "particle states") "Rowwisetxt data file does not have correct `Particle States` header. File may be corrupted."
+    
+    # read first line of data.
+    # If there is a space ` ` separating the position and spin data, it is compressed
+    dataline = readline(datafile)
+    if contains(dataline, " ")
+        iscompressed = true
+    end
+
+    # close file
+    close(datafile)
+    
+    return (nsegments, iscompressed)
+end

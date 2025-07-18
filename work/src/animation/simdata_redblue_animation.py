@@ -10,11 +10,13 @@ import moviepy
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from simulation.sim_structs import SimulationData, SimulationParameters
-from file_management.simdata_files import loadsim, loadsim_n_lines
+from file_management.simdata_files import loadsim, loadsim_n_lines, get_simfile_type, prepare_simfile
 from utils.paths import fix_path
 
-SPIN_UP_COLOUR = "blue"
-SPIN_DOWN_COLOUR = "red"
+SPIN_UP_COLOR = "blue"
+SPIN_DOWN_COLOR = "red"
+FOLLOWING_COLOR = "darkorchid"
+SPIN = "red"
 ALPHA = 0.3
 PLOT_YLIM = 0.2
 PLOT_DOT_SIZE = 300
@@ -69,8 +71,8 @@ def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 3
         marker_size = PLOT_DOT_SIZE
 
 
-    up_rgba = mplc.colorConverter.to_rgba(SPIN_UP_COLOUR, alpha=ALPHA)
-    down_rgbpa = mplc.colorConverter.to_rgba(SPIN_DOWN_COLOUR, alpha=ALPHA)
+    up_rgba = mplc.colorConverter.to_rgba(SPIN_UP_COLOR, alpha=ALPHA)
+    down_rgbpa = mplc.colorConverter.to_rgba(SPIN_DOWN_COLOR, alpha=ALPHA)
 
     sc = ax.scatter(np.transpose(init_xdata), np.transpose(init_ydata), s=marker_size, c="k", marker='.', animated=True)
     title = ax.text((sim_data._sim_params._box_width/2) - .15, PLOT_YLIM+.01, "t = 0", fontsize=12)
@@ -126,36 +128,139 @@ def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 3
         plt.show()
 
 
+def sim_animate_follow(file_str:str, particle_to_follow:int, show:bool = True, save:bool = False, fps:float = 30, y_offset=False, save_filepath=None, debug_mode=None, delete_gif=False):    
+    
+    # load data from file
+    if debug_mode is None:
+        sim_data:SimulationData = loadsim(file_str)
+    elif debug_mode == "short":
+        # load only a few frames for quick debug
+        sim_data:SimulationData = loadsim_n_lines(file_str, 0, DEBUG_MODE_SHORT_NFRAMES, change_simparams=True)
 
-def make_mp4s_of_dir(dir_path:str):
+    # calculate positions from data
+
+    # Create a figure and axes
+    fig, ax = plt.subplots()
+    xdata, ydata = [], []
+    ydata = np.zeros((1,len(xdata)))
+    sc, = ax.plot([], [])
+
+    times = sim_data._sim_params.get_save_times()
+
+    # initialize xdata and ydata to al zeros
+    offsets = np.zeros([sim_data._sim_params._num_particles, 2])
+
+    init_xdata = offsets[:,0]
+    init_ydata = offsets[:,1]
+
+    # If option turned on, spread dots out along y-axis to make the particles easier to differentiate
+    if y_offset:
+        init_ydata = 2 * PLOT_YLIM * ((np.arange(0, sim_data._sim_params._num_particles) / sim_data._sim_params._num_particles)  - (1/2))
+        init_ydata[particle_to_follow] = 0
+        init_ydata[sim_data._sim_params._num_particles // 2] = -PLOT_YLIM
+        offsets[:,1] = init_ydata
+
+        # marker_size = int(np.round((2000 / 3) * PLOT_DOT_SIZE / sim_data._sim_params._num_particles))
+        marker_size = max(10, np.pow((2 * PLOT_YLIM) / sim_data._sim_params._num_particles, 2))
+    else:
+        marker_size = PLOT_DOT_SIZE
+
+    # make marker_size array
+
+    marker_size = np.array([marker_size] * sim_data._sim_params._num_particles)
+    marker_size[particle_to_follow] = marker_size[0] * 2
+
+    if y_offset:
+        marker_size[particle_to_follow] = marker_size[0] * 5
+
+
+
+    up_rgba = mplc.colorConverter.to_rgba(SPIN_UP_COLOR, alpha=ALPHA)
+    down_rgbpa = mplc.colorConverter.to_rgba(SPIN_DOWN_COLOR, alpha=ALPHA)
+    following_rgbpa = mplc.colorConverter.to_rgba(FOLLOWING_COLOR, alpha=ALPHA)
+
+    sc = ax.scatter(np.transpose(init_xdata), np.transpose(init_ydata), s=marker_size, c="k", marker='.', animated=True)
+    title = ax.text((sim_data._sim_params._box_width/2) - .15, PLOT_YLIM+.01, "t = 0", fontsize=12)
+    label = ax.text(-.5, PLOT_YLIM+.01, f"Particles: {sim_data._sim_params._num_particles}\nStochastic Flip Rate: {np.round(sim_data._sim_params._flip_rate, 4)}\nInteraction: {sim_data._sim_params._interaction}\nInteraction Flip Rate: {np.round(sim_data._sim_params._interaction_fliprate, 4)}", fontsize=8)
+
+    def sim_init():
+        ax.set_xlim(-sim_data._sim_params._box_width/2, sim_data._sim_params._box_width/2)
+        ax.set_ylim(-PLOT_YLIM, PLOT_YLIM)
+        ax.get_yaxis().set_visible(False)
+        ax.set_xlabel("Particle Position")
+        return sc, title
+
+    def sim_update(frame):
+        offsets[:,0] = sim_data.positions[frame]
+        sc.set_offsets(offsets)
+        color_array = [up_rgba if x == 1 else down_rgbpa for x in sim_data.spins[frame]]
+        color_array[particle_to_follow] = following_rgbpa
+        sc.set_color(color_array)
+        title.set_text(f"t = {np.round(times[frame], 5)}")
+
+        return sc, title
+
+    # compress animation and save
+    anim_length_s = sim_data._sim_params._total_time
+    anim_fps = fps
+    max_length = 10
+    # max_frames = sim_data._sim_params.get_ntimes()
+    # max_frames = max_length * anim_fps
+    anim_save_step = max(1, int(np.round(sim_data._sim_params.get_nsaves() / anim_length_s) / anim_fps))
+    ani = FuncAnimation(fig, sim_update, frames=np.arange(40001, sim_data._sim_params.get_nsaves(), anim_save_step, dtype=int),
+                        init_func=sim_init, blit=True, interval=1000/anim_fps)
+    
+    if save:
+        if save_filepath is None:
+            in_file_prefix = file_str[:-4]
+            save_filepath = f"{in_file_prefix}_follow_{particle_to_follow}.mp4"
+        if save_filepath.endswith(".mp4"):
+            save_filepath_pre = save_filepath[:-4]
+            save_filepath_gif = f"{save_filepath_pre}.gif"
+        elif save_filepath.endswith(".gif"):
+            save_filepath_gif = save_filepath
+        
+        ani.save(save_filepath_gif, fps=anim_fps, progress_callback=print_save_progress)
+
+        if save_filepath.endswith(".mp4"):
+            clip = moviepy.VideoFileClip(save_filepath_gif)
+            clip.write_videofile(save_filepath)
+
+            if delete_gif:
+                os.remove(save_filepath_gif)
+
+
+
+    if show:
+        plt.show()
+
+
+
+def make_mp4s_of_dir(dir_path:str, only_prepared_files:bool=False):
     """
     Saves all txt sim data files in a directory as .mp4 video files
+
+    Set `only_prepared_files=False` to only generate an animation of data files that are already 1 segment and deserialized.
+    If it is `True`, then prepare the data file and generate the animation.
     """
 
     file_list = os.listdir(dir_path)
     for file_name in file_list:
         if file_name.endswith(".txt"):
+
+            # if `only_prepared_files`, skip files that aren't collapsed or deserialized
             full_file_path = os.path.join(dir_path, file_name)
-            print(f"Animating and Saving {full_file_path}...")
+            (n_segments, is_compressed) = get_simfile_type(full_file_path)
+
+            if only_prepared_files and (n_segments != 1 or is_compressed):
+                continue
+            else:
+                prepared_file_path = prepare_simfile(full_file_path)
+
+            print(f"Animating and Saving {prepared_file_path}...")
             
             try:
-                sim_animate(full_file_path, show=False, save=True, fps=100, y_offset=True, delete_gif=True)
+                sim_animate(prepared_file_path, show=False, save=True, fps=100, y_offset=True, delete_gif=True)
             except:
                 print(f"Could not animate sim at {file_name}.")
-            
 
-
-
-
-# sim_animate(noint11, SHOW, SAVE, fps=100, y_offset=True, delete_gif=True)
-# sim_animate(new_rowwise_short, SHOW, SAVE, fps=600, y_offset=True)
-# sim_animate(new_rowwise_sn, SHOW, SAVE, fps=600, y_offset=True)
-
-
-# data_dir = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/8-7/"
-density_sweep_dir = fix_path("work/data/12-7")
-
-datafile = fix_path("work/data/12-7/N1000-B100-alignsimple-300-t100-sn0.01_0.txt")
-
-sim_animate(datafile, show=False, save=True, fps=100, y_offset=True, delete_gif=True)
-# make_mp4s_of_dir(density_sweep_dir)
