@@ -22,4 +22,4 @@ Changed Python code to load data files that have `snapshot_dt != dt`. But still 
 
 ## July 14
 
-Convert old serialized files to new serialization method.
+Convert old serialized files to new serialization method.-- DONE

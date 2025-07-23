@@ -1,4 +1,5 @@
 using CSV
+using Statistics
 
 include("../simulation/basic_sim.jl")
 include("./histogram_helper.jl")
@@ -15,60 +16,50 @@ Returns a distribution that gives the MSD (in units of length^2) as a function o
 
 Calculated from the (unrwrapped) positions
 """
-function meansqdisp(simdata::SimulationData)::Matrix{<:Real}
+function meansqdisp(simdata::SimulationData, settletime::Float64=-1.0)::Matrix{<:Real}
     # returns the Mean Squared Displacement data from a SimulationData object
 
-    times = gettimes(simdata.simparams)
-    ntimes = getntimes(simdata.simparams)
-    positions = copy(simdata.positions)
+    # if no `settletime` specified, use half the `totaltime`
+    if settletime < 0
+        settletime = simdata.simparams.totaltime / 2
+    end
 
-    mintimestep::Float64 = simdata.simparams.dt
-    maxtimestep::Float64 = simdata.simparams.totaltime / 2
-    dtarray::Array{Float64} = collect(mintimestep:mintimestep:maxtimestep)
-    ndts::Int64 = size(dtarray)[1]
+    
+    times = gettimes(simdata.simparams)
+    nsaves = getnsaves(simdata.simparams)
+    positions = unwrappositions(simdata)
+    
+    mintimestep::Float64 = simdata.simparams.snapshot_dt
+    maxtimestep::Float64 = simdata.simparams.totaltime - settletime
+    ndts::Int64 = Int64(floor(maxtimestep / mintimestep))
+    
+    # calculate snapshot index of the settletime
+    settletime_i = nsaves - ndts
 
     msdmat::Matrix{Float64} = zeros(2, ndts+1)
 
-    msdmat[1, 1] = 0
-    msdmat[2, 1] = 0
-
-
-    dt = mintimestep
+    # first column of `msdmat` is 0s
 
     # evaluate for each interval dt, incremented by number of `mintimestep`s 
     for ndt in 1:ndts
         
-        maxt0 = ntimes - ndt
+        mint0_i = settletime_i
+        maxt0_i = nsaves - ndt
+        nt0s = maxt0_i - mint0_i + 1
 
         # integrate over all starting points t0
         t0dispsum = 0
-        for t0 in 1:maxt0
-
-
+        for t0_i in mint0_i:maxt0_i
             # average over all particles
-            particledispsum = 0
-            for n in 1:simdata.simparams.numparticles
-                particledispsum += (positions[t0+ndt, n] - positions[t0, n])^2
-            end
-            particledispsum /= simdata.simparams.numparticles
-
+            particledispsum = msd(positions[t0_i+ndt, :], positions[t0_i, :])
             t0dispsum += particledispsum
-
         end
-        t0dispsum /= maxt0
+        t0dispsum /= nt0s
 
-
+        # fill in top row as timestep `dt` and bottom row as Mean Squared Displacement
         msdmat[1, ndt+1] = ndt * mintimestep
         msdmat[2, ndt+1] = t0dispsum
     end
-
-
-
-
-    # for each winow of length dt
-
-    # for each particle
-
 
     return msdmat
 end

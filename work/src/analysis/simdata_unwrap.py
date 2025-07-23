@@ -35,7 +35,7 @@ def simdata_unwrap(sim_data:SimulationData):
     if particle_dx >= jump_thresh:
         raise ValueError("The threshold to detect particle wrapping is smaller than the expected distance particles move between frames, making it hard to detect when particles wrap.")
 
-    nframes = sim_data._sim_params.get_ntimes()
+    nframes = sim_data._sim_params.get_nsaves()
 
     pb = ProgressBar(nframes, "Calculating wraps...", "Done")
 

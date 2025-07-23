@@ -80,7 +80,7 @@ function oc_plot(filename::String, settletime::Float64=-1.0, serialized::Bool=fa
 
     if saveplot
         # get dir path to save plot
-        datadirname = getanalysisdir(PARTICLE_DENSITY_DIRNAME, sd.simparams)
+        datadirname = getanalysisdir(ORIENTATION_SELFCORRELATION_DIRNAME, sd.simparams)
         plt.savefig(joinpath(datadirname, "$(FILE_NAME_PREFIX).pdf"), bbox_inches = "tight", pad_inches=0.1)
     end
     
