@@ -164,3 +164,34 @@ $\log(n)$
 
 
 - Animation with 1 particle highlighted its own color to see if it's bounding back and forth or staying in the flock
+
+
+## July 23
+
+- Look at 1D run-and-tumble particles
+
+
+- Density plot -- histogram of densities by position with colors based on polarization
+
+
+- Eventually look at turning away interactions
+
+
+
+
+
+- Introduce active matter
+- talk about brownian motion
+- talk about 2D cases (flocking, Vicek)
+- then move to 1D cases
+
+
+- 1-2 pages on what the correlation functions are
+- ~1 page on how I implemented my code
+
+
+- Start writing introduction
+- Make an outline of methods
+
+
+- Write email to Patrick and Till to discuss meeting for next Friday

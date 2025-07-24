@@ -23,3 +23,7 @@ Changed Python code to load data files that have `snapshot_dt != dt`. But still 
 ## July 14
 
 Convert old serialized files to new serialization method.-- DONE
+
+
+## July 23
+Fix plotting Orientation Correlation data from .txt files to work with files that aren't sweeps (i.e. for data files that are just 1 line).

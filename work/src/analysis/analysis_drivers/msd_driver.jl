@@ -90,7 +90,11 @@ function msd_plot(filename::String, settletime::Float64=-1.0, serialized::Bool=f
     end
 end
 
+"""
+Plots the data previously saved to a txt file.
 
+Can specify `maxindex` to only plot that many data points along the horizontal axis.
+"""
 function msd_plot_txt(txtfilename::String, maxindex::Int64=1000, saveplot::Bool=true, show::Bool=false)
     
     # get the plot data from the file

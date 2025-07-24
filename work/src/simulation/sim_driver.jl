@@ -30,10 +30,10 @@ simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, inter
 
 
 #### STARTING SIM
-data_file = getsimdatafilename(simparams)
+# data_file = getsimdatafilename(simparams)
 
 # println(data_file)
-simdata = runsim(simparams)
+# simdata = runsim(simparams)
 
 # savesim(simdata, data_file, rowwisetxt)
 
@@ -42,12 +42,13 @@ simdata = runsim(simparams)
 
 
 
+data_file = fixpath("work/data/sweeps/densitysweep/collapsed/N5000-B100.0-alignsimple-100.txt")
 
+# #### EXTENDING SIM
+# serialized = true
+# extended_sd = extendsim(data_file, 70, serialized)
+# appendsim(extended_sd, data_file, serialized)
 
-# # #### EXTENDING SIM
-# serialized = false
-# # extended_sd = extendsim(data_file, 1, serialized)
-# # appendsim(extended_sd, data_file, serialized)
 
 # for i in 1:10
 #     extended_sd = extendsim(data_file, totaltime, serialized)

@@ -29,16 +29,16 @@ function getfirstsaveddate(filename::String)
     return saveddate
 end
 
-function findfreefilename(filenameprefix::String)::String
+function findfreefilename(filenameprefix::String, extension::String=".txt")::String
     i = 0
-    while isfile("$(filenameprefix)_$(i).txt")
+    while isfile("$(filenameprefix)_$(i)$(extension)")
         i += 1
     end
-    newname = "$(filenameprefix)_$(i).txt"
+    newname = "$(filenameprefix)_$(i)$(extension)"
     return newname
 end
 
-function checkfilename(outputfilename::String)::String
+function checkfilename(outputfilename::String, extensionlength::Int=4)::String
     if isfile(outputfilename)
         saveddate::DateTime = getfirstsaveddate(outputfilename)
         println("Overwrite $(outputfilename) with simulation data saved at $(saveddate)? Y/N ")
@@ -46,7 +46,7 @@ function checkfilename(outputfilename::String)::String
         response = readline()
         if lowercase(response) != "y"
             # find new file_name
-            newname = findfreefilename(outputfilename[1:end-4])
+            newname = findfreefilename(outputfilename[1:end-extensionlength], outputfilename[end-extensionlength+1:end])
             println("Saving instead as $(newname)")
             return newname
         end

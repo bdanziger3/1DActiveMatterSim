@@ -46,7 +46,7 @@ function oc_plot(filename::String, settletime::Float64=-1.0, serialized::Bool=fa
     # save as a datafile if requested
     if savetxt
         outputtextfilefullpath = joinpath(getanalysisdir(ORIENTATION_SELFCORRELATION_DIRNAME, sd.simparams), "$(FILE_NAME_PREFIX)-$(settletime).txt")
-
+        outputtextfilefullpath = checkfilename(outputtextfilefullpath)
         open(outputtextfilefullpath, "w") do io
             println(io, "Orientation Self-Correlation  Data")
             writedlm(io, ocmat, ",")
@@ -81,11 +81,100 @@ function oc_plot(filename::String, settletime::Float64=-1.0, serialized::Bool=fa
     if saveplot
         # get dir path to save plot
         datadirname = getanalysisdir(ORIENTATION_SELFCORRELATION_DIRNAME, sd.simparams)
-        plt.savefig(joinpath(datadirname, "$(FILE_NAME_PREFIX).pdf"), bbox_inches = "tight", pad_inches=0.1)
+        outputfilename = joinpath(datadirname, "$(FILE_NAME_PREFIX).pdf")
+        outputfilename = checkfilename(outputfilename)
+        plt.savefig(outputfilename, bbox_inches = "tight", pad_inches=0.1)
     end
     
     if show
         plt.show()
+    end
+end
+
+
+"""
+Plots the data previously saved to a txt file.
+
+Can specify `maxindex` to only plot that many data points along the horizontal axis.
+"""
+function oc_plot_txt(txtfilename::String, maxindex::Int64=1000, saveplot::Bool=false, show::Bool=true)
+    
+    # get the plot data from the file
+    file = open(txtfilename, "r")
+
+    line = readline(file)
+    # Check that data file header is correct
+    @assert contains(lowercase(line), "orientation self-correlation data") "OC data file does not have correct first line. File may be corrupted."
+    
+    # check if it is a sweep
+    line = readline(file)
+
+    ### Plotting
+    # prepare plot
+    plt.clf()
+    plt.grid(true, zorder=0)
+    ###
+
+    
+    if contains(lowercase(line), "sweep type")
+        FILE_NAME_PREFIX = "orientation_selfcorrelation_plot"
+        sweeptype = eval(Symbol(line[length("sweep type: ")+1:end]))
+        local legendlabels::Array{String}
+        local legendtitle::String
+        local paramsstr::String
+        if sweeptype == densitysweep
+            legendtitle = "Number of Particles"
+        elseif sweeptype == boxwidthsweep
+            legendtitle = "Box Width"
+        elseif sweeptype == interactionstrengthsweep
+            legendtitle = "Interaction Fliprate"
+        end
+
+        # now get sweep values
+        line = readline(file)
+        line = readline(file)
+        
+        legendlabels = split(line, ",")
+        
+        # get params string for plot
+        line = readline(file)
+        paramsstr = line[length("Params String: ")+1:end]
+        
+        # read x data (dt)
+        line = readline(file)
+        dataline = readline(file)
+        dtdata::Array{Float64} = parse.(Float64, split(dataline, ","))
+        # read y data (OC)
+        ocdata_i::Array{Float64} = zeros(1, length(dtdata))
+        for i in 1:length(legendlabels)
+            dataline = readline(file)
+            ocdata_i = parse.(Float64, split(dataline, ","))
+            
+            # plot each line one at a time
+            plt.plot(dtdata[1:maxindex], ocdata_i[1:maxindex])
+        end
+        
+        # add legends and labels to plot
+        plt.legend(legendlabels, title=legendtitle)
+        plt.xlabel("$(raw"Time Interval $dt$")")
+        plt.ylabel("Orientation Self-Correlation\n$(raw"$\langle u_i (t + \Delta t) u_t(t)\rangle_{t,i}$")")
+        plt.title("Orientation Self-Correlation of Active Particle Simulation\n$(paramsstr)")
+        
+        if saveplot
+            # get dir path to save plot
+            datadirname = dirname(txtfilename)
+            outputfilename = joinpath(datadirname, "$(FILE_NAME_PREFIX)_from_txt_maxindex-$(maxindex).pdf")
+            outputfilename = checkfilename(outputfilename)
+            plt.savefig(outputfilename, bbox_inches = "tight", pad_inches=0.1)
+        end
+        
+        if show
+            plt.show()
+        end
+
+    else
+        FILE_NAME_PREFIX = "orientation_selfcorrelation"
+        @assert false "Cannot plot files that are not sweeps yet."
     end
 end
 
@@ -149,16 +238,6 @@ function oc_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
         end
     end
 
-        # save as a datafile if requested
-    if savetxt
-        outputtextfilefullpath = joinpath(getanalysissweepdir(ORIENTATION_SELFCORRELATION_DIRNAME, sp_array, sweepname), "$(FILE_NAME_PREFIX)-settletime$(settletime).txt")
-
-        open(outputtextfilefullpath, "w") do io
-            println(io, "Orientation Self-Correlation  Data")
-            writedlm(io, full_ocmat, ",")
-        end
-    end
-
     
     # generate legend labels and title
 
@@ -172,23 +251,45 @@ function oc_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
     local legendlabels::Array{String}
     local legendtitle::String
     local paramsstr::String
+    local sortedorder::Vector{Int}
     if sweeptype == densitysweep
         legendtitle = "Number of Particles"
-        legendlabels = (sp -> "$(sp.numparticles)").(sp_array)
+        sortedorder = sortperm([sp.numparticles for sp in sp_array])
+        legendlabels = (sp -> "$(sp.numparticles)").(sp_array[sortedorder])
         paramsstr = "t=$(Int64(sp_array[1].totaltime))  Boxwidth=$(sp_array[1].boxwidth)  $(interactionstr)"
     elseif sweeptype == boxwidthsweep
         legendtitle = "Box Width"
-        legendlabels = (sp -> "$(sp.boxwidth)").(sp_array)
-        paramsstr = "t=$(Int64(sp_array[1].totaltime))  N=$(sd.simparams.numparticles)   Boxwidth=$(sp_array[1].boxwidth)  $(interactionstr)"
+        sortedorder = sortperm([sp.boxwidth for sp in sp_array])
+        legendlabels = (sp -> "$(sp.boxwidth)").(sp_array[sortedorder])
+        paramsstr = "t=$(Int64(sp_array[1].totaltime))  N=$(sp_array[1].numparticles)   Boxwidth=$(sp_array[1].boxwidth)  $(interactionstr)"
     elseif sweeptype == interactionstrengthsweep
         legendtitle = "Interaction Fliprate"
-        legendlabels = (sp -> "$(sp.interactionfliprate)").(sp_array)
-        paramsstr = "t=$(Int64(sp_array[1].totaltime))  N=$(sd.simparams.numparticles)   $(interactionstr)"
+        sortedorder = sortperm([sp.interactionfliprate for sp in sp_array])
+        legendlabels = (sp -> "$(sp.interactionfliprate)").(sp_array[sortedorder])
+        paramsstr = "t=$(Int64(sp_array[1].totaltime))  N=$(sp_array[1].numparticles)   $(interactionstr)"
     end
 
 
+    # save as a datafile if requested
+    if savetxt
+        outputtextfilefullpath = joinpath(getanalysissweepdir(ORIENTATION_SELFCORRELATION_DIRNAME, sp_array, sweepname), "$(FILE_NAME_PREFIX)-settletime$(settletime).txt")
+        outputtextfilefullpath = checkfilename(outputtextfilefullpath)
 
-    
+        open(outputtextfilefullpath, "w") do io
+            println(io, "Orientation Self-Correlation Data")
+            println(io, "Sweep Type: $(sweeptype)")
+            println(io, "Sweep Values")
+            writedlm(io, permutedims(legendlabels), ",")
+            println(io, "Params String: $(paramsstr)")
+            println(io, "Data Matrix")
+            writedlm(io, permutedims(full_ocmat[1, :]), ",")
+            for i in sortedorder
+                writedlm(io, permutedims(full_ocmat[i+1, :]), ",")
+            end
+        end
+    end
+
+
 
 
 
@@ -199,8 +300,8 @@ function oc_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
     
     plt.grid(true, zorder=0)
 
-    for i in 2:size(full_ocmat)[1]
-        plt.plot(full_ocmat[1,:], full_ocmat[i,:])
+    for i in sortedorder
+        plt.plot(full_ocmat[1,:], full_ocmat[i+1,:])
     end
 
     plt.legend(legendlabels, title=legendtitle)
@@ -211,7 +312,9 @@ function oc_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
     if saveplot
         # get dir path to save plot
         datadirname = getanalysissweepdir(ORIENTATION_SELFCORRELATION_DIRNAME, sp_array, sweepname)
-        plt.savefig(joinpath(datadirname, "$(FILE_NAME_PREFIX).pdf"), bbox_inches = "tight", pad_inches=0.1)
+        outputfilename = joinpath(datadirname, "$(FILE_NAME_PREFIX).pdf")
+        outputfilename = checkfilename(outputfilename)
+        plt.savefig(outputfilename, bbox_inches = "tight", pad_inches=0.1)
     end
     
     if show
@@ -233,5 +336,10 @@ serialized::Bool = true
 # oc_plot(datafile, -1.0, serialized, false, true, true)
     
 
-testdir = fixpath("/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/sweeps/densitysweep/collapsed")
-oc_plot_dir(testdir, "Density Sweep 10-7", densitysweep, -1.0, serialized, true, true, false)
+# sweepdir = fixpath("/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/sweeps/densitysweep/collapsed")
+# sweepdir = fixpath("work/data/sweeps/interactionsweep/N1000-sweep")
+# oc_plot_dir(sweepdir, "Interaction Sweep N1000", interactionstrengthsweep, -1.0, serialized, true, true, false)
+
+dsweep_txt = fixpath("work/analysis/Orienation Self-Correlation/Align Simple/Interaction Sweep N1000/orientation_selfcorrelation_plot-settletime-1.0_0.txt")
+oc_plot_txt(dsweep_txt, 1000, true, false)
+
