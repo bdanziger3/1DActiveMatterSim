@@ -13,6 +13,7 @@ from simulation.sim_structs import SimulationData, SimulationParameters
 from file_management.simdata_files import loadsim, loadsim_n_lines, prepare_simfile
 from animation.video_file import resize_videofile
 from animation.simdata_redblue_animation import sim_animate, make_mp4s_of_dir, sim_animate_follow
+from animation.density_hist_animation import particle_density_animate
 from utils.paths import fix_path
 
 
@@ -22,8 +23,8 @@ from utils.paths import fix_path
 # clip_filepath_2 = fix_path("work/data/26-6/N1000-B100-alignsimple-300-t100-sn0.01_TEMP_COLLAPSED_1_follow_50-300s.mp4")
 # clip_filepath_3 = fix_path("work/data/26-6/N1000-B100-alignsimple-300-t100-sn0.01_TEMP_COLLAPSED_1_follow-300-400s.mp4")
 # clip_filepath_4 = fix_path("work/data/26-6/N1000-B100-alignsimple-300-t100-sn0.01_TEMP_COLLAPSED_1_follow_400-1000s.mp4")
-new_clip_filepath = fix_path("work/data/26-6/N1000-B100-alignsimple-300-t1000-sn0.01_long.mp4")
-newer_clip_filepath = fix_path("work/data/26-6/N1000-B100-alignsimple-300-t1000-sn0.01_faster.mp4")
+# new_clip_filepath = fix_path("work/data/26-6/N1000-B100-alignsimple-300-t1000-sn0.01_long.mp4")
+# newer_clip_filepath = fix_path("work/data/26-6/N1000-B100-alignsimple-300-t1000-sn0.01_faster.mp4")
 # clip1 = moviepy.VideoFileClip(clip_filepath_1).subclipped(0, 50)
 # clip2 = moviepy.VideoFileClip(clip_filepath_2).subclipped(0, 250)
 # clip3 = moviepy.VideoFileClip(clip_filepath_3)
@@ -34,8 +35,14 @@ newer_clip_filepath = fix_path("work/data/26-6/N1000-B100-alignsimple-300-t1000-
 # final_clip.write_videofile(new_clip_filepath)
 
 
-clip = moviepy.VideoFileClip(new_clip_filepath)
-faster_clip = resize_videofile(clip, 60, 30, newer_clip_filepath)
+file_align = fix_path("work/data/26-6/N1000-B100-alignsimple-300-t100-sn0.01.txt")
+save_filepath = fix_path("work/data/26-6/N1000-B100-alignsimple-300-t100-sn0.01.mp4")
+save_filepath_faster = fix_path("work/data/26-6/N1000-B100-alignsimple-300-t100-sn0.01_faster.mp4")
+particle_density_animate(file_align, 100, False, True, fps=40, delete_gif=True)
+
+
+clip = moviepy.VideoFileClip(save_filepath)
+faster_clip = resize_videofile(clip, 60, 30, save_filepath_faster)
 
 
 

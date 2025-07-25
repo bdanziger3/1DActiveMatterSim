@@ -15,6 +15,7 @@
 - PyCall v1.96.4
 - PyPlot v2.11.5
 - StatsBase v0.34.5
+- ColorSchemes v3.30.0
 
 ## Brew
 - ImageMagick

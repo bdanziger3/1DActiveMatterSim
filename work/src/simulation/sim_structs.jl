@@ -1,4 +1,5 @@
 using DataFrames
+using ProgressMeter
 
 @enum InteractionType nointeraction alignsimple antialignsimple
 
