@@ -229,10 +229,10 @@ def particle_density_animate(file_str:str, particle_density_nbins:int = -1, show
     if save:
         if save_filepath is None:
             in_file_prefix = file_str[:-4]
-            save_filepath = f"{in_file_prefix}.mp4"
+            save_filepath = f"{in_file_prefix}_density_hist_polarization.mp4"
         if save_filepath.endswith(".mp4"):
             save_filepath_pre = save_filepath[:-4]
-            save_filepath_gif = f"{save_filepath_pre}.gif"
+            save_filepath_gif = f"{save_filepath_pre}_density_hist_polarization.gif"
         elif save_filepath.endswith(".gif"):
             save_filepath_gif = save_filepath
         
