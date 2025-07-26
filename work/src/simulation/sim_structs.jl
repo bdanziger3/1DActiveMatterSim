@@ -1,7 +1,7 @@
 using DataFrames
 using ProgressMeter
 
-@enum InteractionType nointeraction alignsimple antialignsimple
+@enum InteractionType nointeraction alignsimple antialignsimple turnaway
 
 """
 Simulation parameters on which to run particles

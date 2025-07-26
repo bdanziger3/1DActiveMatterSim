@@ -111,7 +111,7 @@ function alignOn2(simparams::SimulationParameters, currpositions::Matrix{<:Real}
     return flips_int
 end 
 
-function alignsorted(simparams::SimulationParameters, currpositions::Matrix{<:Real}, currspins::Matrix{Int8}, antialign::Bool = false)
+function alignsorted(simparams::SimulationParameters, currpositions::Matrix{<:Real}, currspins::Matrix{Int8}, antialign::Bool = false)::Array{Bool}
     nparticles =  length(currpositions)
     canflip::Array{Bool} = Array{Bool}(undef, 1, nparticles)
     canflip .= false
@@ -156,7 +156,60 @@ function alignsorted(simparams::SimulationParameters, currpositions::Matrix{<:Re
     end
 
     return flips_int
-end 
+end
+
+function turnawayinteraction(simparams::SimulationParameters, currpositions::Matrix{<:Real}, currspins::Matrix{Int8}, antialign::Bool = false)::Array{Bool}
+    nparticles =  length(currpositions)
+    canflip::Array{Bool} = Array{Bool}(undef, 1, nparticles)
+    canflip .= false
+    # sort positions and use that to calculate neighbors.
+    particleorder::Array{Int} = sortperm(currpositions[1,:])
+
+    for (i, p_i) in enumerate(particleorder)
+        # find nearest neighbors of each particle
+        local leftneighbor::Int
+        local rightneighbor::Int
+
+        if i == 1
+            leftneighbor = particleorder[end]
+        else
+            leftneighbor = particleorder[i - 1]
+        end
+        
+        if i == nparticles
+            rightneighbor = particleorder[1]
+        else
+            rightneighbor = particleorder[i + 1]
+        end
+        
+        # determine which particle is closer and turn away from that one
+        leftdistance = abs(currpositions[leftneighbor] - currpositions[p_i])
+        rightdistance = abs(currpositions[rightneighbor] - currpositions[p_i])
+
+        # if closer to left neighbor, flip if facing left
+        # if closer to right neighbor, flip if facing right
+        if leftdistance < rightdistance && currspins[p_i] == -1
+            canflip[p_i] = true
+        elseif rightdistance < leftdistance && currspins[p_i] == 1
+            canflip[p_i] = true
+        end
+    end
+
+    # now for all particles that can flip, check if they do flip
+    flips_int::Array{Bool} = Array{Bool}(undef, 1, simparams.numparticles)
+
+    for p in 1:nparticles
+        if canflip[p]
+            flips_int[p] = randlinflip(simparams.dt, simparams.interactionfliprate)
+        else
+            flips_int[p] = false
+        end
+    end
+
+    return flips_int
+end
+
+
 
 function alignOn2_quick(simparams::SimulationParameters, currpositions::Matrix{<:Real}, currspins::Matrix{Int8}, antialign::Bool = false)
     nparticles =  length(currpositions)
@@ -313,6 +366,9 @@ function calcspinflips(simparams::SimulationParameters, currspins::Matrix{Int8},
     if simparams.interaction == alignsimple
         # update spins in place from interactions
         flips_int = alignsorted(simparams, currpositions, currspins, false)
+    elseif simparams.interaction == turnaway
+        # update spins in place from interactions
+        flips_int = turnawayinteraction(simparams, currpositions, currspins, false)
     else
         # println(flips_int)
     end
