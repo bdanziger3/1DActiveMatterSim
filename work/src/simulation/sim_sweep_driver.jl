@@ -10,18 +10,17 @@ include("../utils/paths.jl")
 # import ActiveSim1D
 # using ActiveSim1D
 
-datasweeps_dir = "$(getrootabspath())/work/data/sweeps/densitysweep"
 
 ### Full Sweeps
-# flipratesweep = [10, 50, 100, 150, 200, 250, 300]
+flipratesweep = [10, 50, 100, 150, 200, 250, 300]
 # boxwidthsweep = [25, 50, 75, 100, 125, 150, 175, 200]
 # densitysweep = [.1, .5, 1, 5, 10, 15, 20, 50, 100]
-densitysweep = [5, 10, 15, 20, 50, 100]
+# densitysweep = [5, 10, 15, 20, 50, 100]
 
 ### Single Value
-flipratesweep = [100]
+# flipratesweep = [100]
 boxwidthsweep = [100]
-# densitysweep = [100]
+densitysweep = [100]
 
 serialized = true
 
@@ -29,11 +28,15 @@ fliprate::Real = 1
 v0::Real = 1
 dt::Real = 1e-4
 totaltime::Real = 100
-interaction = alignsimple
+interaction = turnaway
 randomstarts = true
 snapshot_dt = 1e-2
 
-segment_splits = 10
+segment_splits = 1
+
+
+datasweeps_dir = "$(getrootabspath())/work/data/sweeps/$(interaction)/interactionsweep"
+
 
 for i in flipratesweep
     for b in boxwidthsweep
