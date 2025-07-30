@@ -9,6 +9,7 @@
 
 using PyPlot
 using PyCall
+using ColorSchemes
 
 include("../correlation_functions.jl")
 include("../../file_management/simdata_files.jl")
@@ -17,6 +18,9 @@ include("../../file_management/analysis_files.jl")
 
 
 @enum SweepType densitysweep boxwidthsweep interactionstrengthsweep
+
+
+OC_LINE_COLORMAP = ColorSchemes.vik100
 
 
 
@@ -135,6 +139,8 @@ function oc_plot_txt(txtfilename::String, maxindex::Int64=1000, saveplot::Bool=f
         line = readline(file)
         
         legendlabels = split(line, ",")
+        legendvalues = parse.(Float64, legendlabels)
+        println(legendvalues)
         
         # get params string for plot
         line = readline(file)
@@ -146,12 +152,18 @@ function oc_plot_txt(txtfilename::String, maxindex::Int64=1000, saveplot::Bool=f
         dtdata::Array{Float64} = parse.(Float64, split(dataline, ","))
         # read y data (OC)
         ocdata_i::Array{Float64} = zeros(1, length(dtdata))
-        for i in 1:length(legendlabels)
+        nshots = length(legendlabels)
+
+        for i in 1:nshots
             dataline = readline(file)
             ocdata_i = parse.(Float64, split(dataline, ","))
             
             # plot each line one at a time
-            plt.plot(dtdata[1:maxindex], ocdata_i[1:maxindex])
+            linecolor = get(OC_LINE_COLORMAP, 0.5 + (0.5 * (i / nshots)))
+            # linecolor = get(OC_LINE_COLORMAP, legendvalues[i] / maximum(legendvalues))
+            println(linecolor)
+            println((linecolor.r, linecolor.g, linecolor.b))
+            plt.plot(dtdata[1:maxindex], ocdata_i[1:maxindex], color=(linecolor.r, linecolor.g, linecolor.b))
         end
         
         # add legends and labels to plot
@@ -261,12 +273,12 @@ function oc_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
         legendtitle = "Box Width"
         sortedorder = sortperm([sp.boxwidth for sp in sp_array])
         legendlabels = (sp -> "$(sp.boxwidth)").(sp_array[sortedorder])
-        paramsstr = "t=$(Int64(sp_array[1].totaltime))  N=$(sp_array[1].numparticles)   Boxwidth=$(sp_array[1].boxwidth)  $(interactionstr)"
+        paramsstr = "t=$(Int64(sp_array[1].totaltime))  N=$(sp_array[1].numparticles)  $(interactionstr)"
     elseif sweeptype == interactionstrengthsweep
         legendtitle = "Interaction Fliprate"
         sortedorder = sortperm([sp.interactionfliprate for sp in sp_array])
         legendlabels = (sp -> "$(sp.interactionfliprate)").(sp_array[sortedorder])
-        paramsstr = "t=$(Int64(sp_array[1].totaltime))  N=$(sp_array[1].numparticles)   $(interactionstr)"
+        paramsstr = "t=$(Int64(sp_array[1].totaltime))  N=$(sp_array[1].numparticles)  Boxwidth=$(sp_array[1].boxwidth)"
     end
 
 
@@ -301,7 +313,8 @@ function oc_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
     plt.grid(true, zorder=0)
 
     for i in sortedorder
-        plt.plot(full_ocmat[1,:], full_ocmat[i+1,:])
+        linecolor = get(OC_LINE_COLORMAP, sp_array[i].numparticles / sp_array[sortedorder[end]].numparticles)
+        plt.plot(full_ocmat[1,:], full_ocmat[i+1,:], color=(linecolor.r, linecolor.g, linecolor.b))
     end
 
     plt.legend(legendlabels, title=legendtitle)
@@ -337,9 +350,9 @@ serialized::Bool = true
     
 
 # sweepdir = fixpath("/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/sweeps/densitysweep/collapsed")
-# sweepdir = fixpath("work/data/sweeps/interactionsweep/N1000-sweep")
-# oc_plot_dir(sweepdir, "Interaction Sweep N1000", interactionstrengthsweep, -1.0, serialized, true, true, false)
+# sweepdir = fixpath("work/data/sweeps/alignsimple/interactionsweep/N1000-sweep")
+# oc_plot_dir(sweepdir, "Interaction Sweep N1000", interactionstrengthsweep, -1.0, serialized, false, false, true)
 
 dsweep_txt = fixpath("work/analysis/Orienation Self-Correlation/Align Simple/Interaction Sweep N1000/orientation_selfcorrelation_plot-settletime-1.0_0.txt")
-oc_plot_txt(dsweep_txt, 1000, true, false)
+oc_plot_txt(dsweep_txt, 1000, false, true)
 
