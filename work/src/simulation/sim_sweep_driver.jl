@@ -12,15 +12,15 @@ include("../utils/paths.jl")
 
 
 ### Full Sweeps
-flipratesweep = [10, 50, 100, 150, 200, 250, 300]
+# flipratesweep = [10, 50, 100, 150, 200, 250, 300]
 # boxwidthsweep = [25, 50, 75, 100, 125, 150, 175, 200]
-# densitysweep = [.1, .5, 1, 5, 10, 15, 20, 50, 100]
+densitysweep = [.1, .5, 1, 5, 10, 15, 20, 50]
 # densitysweep = [5, 10, 15, 20, 50, 100]
 
 ### Single Value
-# flipratesweep = [100]
+flipratesweep = [100]
 boxwidthsweep = [100]
-densitysweep = [100]
+# densitysweep = [100]
 
 serialized = true
 
@@ -34,9 +34,23 @@ snapshot_dt = 1e-2
 
 segment_splits = 1
 
+local sweeptype::str = ""
+if length(boxwidthsweep) == 1 && length(densitysweep) == 1
+    sweeptype = "interactionsweep"
+elseif length(boxwidthsweep) == 1 && length(flipratesweep) == 1
+    sweeptype = "densitysweep"
+elseif length(flipratesweep) == 1 && length(densitysweep) == 1
+    sweeptype = "boxwidthsweep"
+end
 
-datasweeps_dir = "$(getrootabspath())/work/data/sweeps/$(interaction)/interactionsweep"
+datasweeps_dir = "$(getrootabspath())/work/data/sweeps/$(interaction)/$(sweeptype)"
 
+if !isdir("$(getrootabspath())/work/data/sweeps/$(interaction)")
+    mkdir("$(getrootabspath())/work/data/sweeps/$(interaction)")
+end
+if !isdir(datasweeps_dir)
+    mkdir(datasweeps_dir)
+end
 
 for i in flipratesweep
     for b in boxwidthsweep
