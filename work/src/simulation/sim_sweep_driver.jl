@@ -34,7 +34,7 @@ snapshot_dt = 1e-2
 
 segment_splits = 1
 
-local sweeptype::str = ""
+local sweeptype = ""
 if length(boxwidthsweep) == 1 && length(densitysweep) == 1
     sweeptype = "interactionsweep"
 elseif length(boxwidthsweep) == 1 && length(flipratesweep) == 1
