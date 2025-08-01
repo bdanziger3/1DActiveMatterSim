@@ -159,7 +159,12 @@ function oc_plot_txt(txtfilename::String, maxindex::Int64=1000, saveplot::Bool=f
             ocdata_i = parse.(Float64, split(dataline, ","))
             
             # plot each line one at a time
-            linecolor = get(OC_LINE_COLORMAP, 0.5 + (0.5 * (i / nshots)))
+            positivehalf = true     # using positive half of the color scheme?
+            if positivehalf
+                linecolor = get(OC_LINE_COLORMAP, 0.5 + (0.5 * (i / nshots)))
+            else
+                linecolor = get(OC_LINE_COLORMAP, 0.5 - (0.5 * (i / nshots)))
+            end
             # linecolor = get(OC_LINE_COLORMAP, legendvalues[i] / maximum(legendvalues))
             println(linecolor)
             println((linecolor.r, linecolor.g, linecolor.b))
@@ -354,5 +359,8 @@ serialized::Bool = true
 # oc_plot_dir(sweepdir, "Interaction Sweep N1000", interactionstrengthsweep, -1.0, serialized, false, false, true)
 
 dsweep_txt = fixpath("work/analysis/Orienation Self-Correlation/Align Simple/Interaction Sweep N1000/orientation_selfcorrelation_plot-settletime-1.0_0.txt")
-oc_plot_txt(dsweep_txt, 1000, false, true)
+dsweep_txt2 = fixpath("work/analysis/Orienation Self-Correlation/Align Simple/Density Sweep 10-7/orientation_selfcorrelation_plot-settletime-1.0.txt")
+# oc_plot_txt(dsweep_txt2, 1000, false, true)
+oc_plot_txt(dsweep_txt2, 1000, true, false)
+
 

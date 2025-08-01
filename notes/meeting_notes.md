@@ -195,3 +195,20 @@ $\log(n)$
 
 
 - Write email to Patrick and Till to discuss meeting for next Friday
+
+
+
+# 30 July
+
+- Run turnaway interactions with lower interaction and long time scales. Try plotting without y axis.
+    - Try to find transition between steady state and moving state,
+    - find functions that might characterize this
+
+
+- run alignsimple sims at longer timescales (~1000s with N=1000 and N=10000 depending on how long it takes to run)
+    - Redo MSD and OC on these timescales, can say settled at t=50s
+    - see if number of bands stays steady throughout sim
+    - also investigate mean polarization over all particles over time.
+
+
+- look at MSD of alignsimple and make a log-log plot

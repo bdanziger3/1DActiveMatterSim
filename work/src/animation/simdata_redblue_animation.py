@@ -206,7 +206,7 @@ def sim_animate_follow(file_str:str, particle_to_follow:int, show:bool = True, s
     # max_frames = sim_data._sim_params.get_ntimes()
     # max_frames = max_length * anim_fps
     anim_save_step = max(1, int(np.round(sim_data._sim_params.get_nsaves() / anim_length_s) / anim_fps))
-    ani = FuncAnimation(fig, sim_update, frames=np.arange(40001, sim_data._sim_params.get_nsaves(), anim_save_step, dtype=int),
+    ani = FuncAnimation(fig, sim_update, frames=np.arange(0, sim_data._sim_params.get_nsaves(), anim_save_step, dtype=int),
                         init_func=sim_init, blit=True, interval=1000/anim_fps)
     
     if save:
@@ -235,7 +235,7 @@ def sim_animate_follow(file_str:str, particle_to_follow:int, show:bool = True, s
 
 
 
-def make_mp4s_of_dir(dir_path:str, only_prepared_files:bool=False):
+def make_mp4s_of_dir(dir_path:str, only_prepared_files:bool=False, fps:float=30):
     """
     Saves all txt sim data files in a directory as .mp4 video files
 
@@ -259,7 +259,7 @@ def make_mp4s_of_dir(dir_path:str, only_prepared_files:bool=False):
             print(f"Animating and Saving {prepared_file_path}...")
             
             try:
-                sim_animate(prepared_file_path, show=False, save=True, fps=100, y_offset=True, delete_gif=True)
+                sim_animate(prepared_file_path, show=False, save=True, fps=fps, y_offset=True, delete_gif=True)
             except:
                 print(f"Could not animate sim at {file_name}.")
 

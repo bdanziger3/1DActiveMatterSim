@@ -370,10 +370,8 @@ function calcspinflips(simparams::SimulationParameters, currspins::Matrix{Int8},
         # update spins in place from interactions
         flips_int = turnawayinteraction(simparams, currpositions, currspins, false)
     else
-        # println(flips_int)
+        # no interaction
     end
-    # println(" ")
-    # println(flips_int)
         
     # update spins in place randomly from stochastic noise
     # flips_noise::Array{Bool} = (x -> randomflips(simparams.dt, simparams.fliprate)).(currspins)
