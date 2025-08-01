@@ -212,3 +212,6 @@ $\log(n)$
 
 
 - look at MSD of alignsimple and make a log-log plot
+
+
+- write down analytic definition of interactions
