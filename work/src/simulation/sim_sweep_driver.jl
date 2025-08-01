@@ -12,22 +12,23 @@ include("../utils/paths.jl")
 
 
 ### Full Sweeps
-# flipratesweep = [10, 50, 100, 150, 200, 250, 300]
-# boxwidthsweep = [25, 50, 75, 100, 125, 150, 175, 200]
-densitysweep = [.1, .5, 1, 5, 10, 15, 20, 50]
+flipratesweep = [1, 2, 5, 10, 50, 100, 150, 200, 250, 300]
+# flipratesweep = [0.001, 0.01, 0.05, 0.1, 0.2, 0.5]
+# boxwidthsweep = [1, 2, 5, 10, 20, 50]
+# densitysweep = [.1, .5, 1, 5, 10, 15, 20, 50]
 # densitysweep = [5, 10, 15, 20, 50, 100]
 
 ### Single Value
-flipratesweep = [100]
+flipratesweep = [0]
 boxwidthsweep = [100]
-# densitysweep = [100]
+densitysweep = [10]
 
 serialized = true
 
 fliprate::Real = 1
 v0::Real = 1
 dt::Real = 1e-4
-totaltime::Real = 100
+totaltime::Real = 1000
 interaction = turnaway
 randomstarts = true
 snapshot_dt = 1e-2
@@ -62,7 +63,7 @@ for i in flipratesweep
             segment_time = Int64(round(totaltime / segment_splits))
             simparams = SimulationParameters(n, segment_time, dt, v0, fliprate, b, interaction, i, 0, randomstarts, snapshot_dt)
             
-            data_file = joinpath(datasweeps_dir, "N$(simparams.numparticles)-B$(simparams.boxwidth)-$(simparams.interaction)-$(Int64(round(simparams.interactionfliprate))).txt")
+            data_file = joinpath(datasweeps_dir, "N$(simparams.numparticles)-B$(simparams.boxwidth)-$(simparams.interaction)-$(simparams.interactionfliprate).txt")
             
             
             # run first sim to create the file
