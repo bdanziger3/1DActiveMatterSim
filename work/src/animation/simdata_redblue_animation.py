@@ -18,7 +18,7 @@ SPIN_DOWN_COLOR = "red"
 FOLLOWING_COLOR = "darkorchid"
 ALPHA = 0.3
 PLOT_YLIM = 0.2
-PLOT_DOT_SIZE = 300
+PLOT_DOT_SIZE = 100
 
 DEBUG_MODE_SHORT_NFRAMES = 5
 
@@ -34,7 +34,9 @@ def print_save_progress(current_frame: int, total_frames: int):
     if (total_frames - current_frame) / total_frames < .01 or (total_frames - current_frame) <= 2: 
         print(f"\033[KSaving File...", end="\r")
 
-def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 30, y_offset=False, save_filepath=None, debug_mode=None, delete_gif=False):    
+def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 30, y_offset=False, save_filepath=None, debug_mode=None, delete_gif=False, file_suffix=None): 
+    if file_suffix is None:
+        file_suffix = ""
     
     # load data from file
     if debug_mode is None:
@@ -116,7 +118,7 @@ def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 3
 
         if save_filepath.endswith(".mp4"):
             clip = moviepy.VideoFileClip(save_filepath_gif)
-            clip.write_videofile(save_filepath)
+            clip.write_videofile(f"{save_filepath[:-4]}{file_suffix}.mp4")
 
             if delete_gif:
                 os.remove(save_filepath_gif)
@@ -235,13 +237,16 @@ def sim_animate_follow(file_str:str, particle_to_follow:int, show:bool = True, s
 
 
 
-def make_mp4s_of_dir(dir_path:str, only_prepared_files:bool=False, fps:float=30, clear_new_files:bool=True):
+def make_mp4s_of_dir(dir_path:str, only_prepared_files:bool=False, fps:float=30, clear_new_files:bool=True, file_suffix=None, y_offset=False):
     """
     Saves all txt sim data files in a directory as .mp4 video files
 
     Set `only_prepared_files=False` to only generate an animation of data files that are already 1 segment and deserialized.
     If it is `True`, then prepare the data file and generate the animation.
     """
+
+    if file_suffix is None:
+        file_suffix = ""
 
     file_list = os.listdir(dir_path)
     for file_name in file_list:
@@ -259,7 +264,7 @@ def make_mp4s_of_dir(dir_path:str, only_prepared_files:bool=False, fps:float=30,
             print(f"Animating and Saving {prepared_file_path}...")
             
             try:
-                sim_animate(prepared_file_path, show=False, save=True, fps=fps, y_offset=True, delete_gif=True)
+                sim_animate(prepared_file_path, show=False, save=True, fps=fps, y_offset=y_offset, delete_gif=True, file_suffix=file_suffix)
 
                 # delete prepared file if new
                 if clear_new_files and prepared_file_path != full_file_path:
