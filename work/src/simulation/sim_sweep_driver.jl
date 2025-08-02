@@ -12,14 +12,15 @@ include("../utils/paths.jl")
 
 
 ### Full Sweeps
-flipratesweep = [1, 2, 5, 10, 50, 100, 150, 200, 250, 300]
+# flipratesweep = [1, 2, 5, 10, 50, 100, 150, 200, 250, 300]
+flipratesweep = [0.5, 1.5, 2.5, 3, 3.5, 4, 4.5]
 # flipratesweep = [0.001, 0.01, 0.05, 0.1, 0.2, 0.5]
-# boxwidthsweep = [1, 2, 5, 10, 20, 50]
+# boxwidthsweep = [1, 2, 5, 10, 20, 50, 100]
 # densitysweep = [.1, .5, 1, 5, 10, 15, 20, 50]
 # densitysweep = [5, 10, 15, 20, 50, 100]
 
 ### Single Value
-flipratesweep = [0]
+# flipratesweep = [0]
 boxwidthsweep = [100]
 densitysweep = [10]
 
@@ -29,7 +30,7 @@ fliprate::Real = 1
 v0::Real = 1
 dt::Real = 1e-4
 totaltime::Real = 1000
-interaction = turnaway
+interaction = alignsimple
 randomstarts = true
 snapshot_dt = 1e-2
 
@@ -78,6 +79,9 @@ for i in flipratesweep
                 println("Saved extended sim $(s) at $(now())")
             end
 
+            # now collapse the segments into 1 segment
+            collapsesegments(data_file, "$(data_file[1:end-4])_t$totaltime.txt")
+            rm(data_file)
         end
     end
 end
