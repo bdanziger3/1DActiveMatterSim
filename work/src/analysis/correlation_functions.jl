@@ -24,8 +24,6 @@ function meansqdisp(simdata::SimulationData, settletime::Float64=-1.0)::Matrix{<
         settletime = simdata.simparams.totaltime / 2
     end
 
-    
-    times = gettimes(simdata.simparams)
     nsaves = getnsaves(simdata.simparams)
     positions = unwrappositions(simdata)
     
@@ -75,14 +73,15 @@ Calculates the average spin over all particles as a function of time
 function polarorder(simdata::SimulationData)::Matrix{Float64}
     # returns the Polar Order as a function of time throughout one simulation
 
-    times = gettimes(simdata.simparams)
-    ntimes = getntimes(simdata.simparams)
+    times = getsavetimes(simdata.simparams)
+    nsaves = getnsaves(simdata.simparams)
     spins = copy(simdata.spins)
     
-    polarordermat::Matrix{Float64} = zeros(ntimes, 2)
+    polarordermat::Matrix{Float64} = zeros(2, nsaves)
 
-    for t in 1:ntimes
-        polarordermat[t, :] = [times[t], sum(spins[t, :]) / simdata.simparams.numparticles]
+    # for t in 1:nsaves
+    @showprogress 1 "Calculating Polar Order..." for t in 1:nsaves
+        polarordermat[:, t] = [times[t]; sum(spins[t, :]) / simdata.simparams.numparticles]
     end
 
     return polarordermat
@@ -96,9 +95,8 @@ Calculates the average spin within a radius around each point in space as a func
 function polarorderwindow(simdata::SimulationData, radius::Float64)::Matrix{Float64}
     # returns the Polar Order as a function of time throughout one simulation
 
-    times = gettimes(simdata.simparams)
-    ntimes = getntimes(simdata.simparams)
-    wrappedpos = copy(simdata.wrappedpositions)
+    nsaves = getnsaves(simdata.simparams)
+    wrappedpos = copy(simdata.positions)
     spins = copy(simdata.spins)
     dx = abs(simdata.simparams.v0 * simdata.simparams.dt)
 
@@ -108,9 +106,9 @@ function polarorderwindow(simdata::SimulationData, radius::Float64)::Matrix{Floa
     xs = collect(minx:dx:maxx)
     nx = size(xs)[1]
     
-    polarordermat::Matrix{Float64} = zeros(ntimes, nx)
+    polarordermat::Matrix{Float64} = zeros(nsaves, nx)
 
-    for t in 1:ntimes
+    for t in 1:nsaves
         for x in 1:nx
             nparticles = 0
             spinsum = 0
@@ -147,9 +145,7 @@ Returns a matrix givng (t,C_p(t)) data
 function orientationcorrelation(simdata::SimulationData, settletime::Float64=-1.0)::Matrix{Float64}
     # returns the Orientation Corelation as a function of time throughout one simulation
 
-    times = gettimes(simdata.simparams)
     nsaves = getnsaves(simdata.simparams)
-    spins = copy(simdata.spins)
 
     # if no `settletime` provided, defaults to half of the total time
     if settletime == -1.0

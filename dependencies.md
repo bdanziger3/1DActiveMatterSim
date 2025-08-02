@@ -16,6 +16,8 @@
 - PyPlot v2.11.5
 - StatsBase v0.34.5
 - ColorSchemes v3.30.0
+- FFTW v1.9.0
+- LsqFit v0.15.1
 
 ## Brew
 - ImageMagick

@@ -215,3 +215,11 @@ $\log(n)$
 
 
 - write down analytic definition of interactions
+
+
+
+# Week of 6 Aug
+
+Questions: Citing software packages?? How do I do that
+
+

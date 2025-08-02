@@ -1,5 +1,5 @@
 ########################
-# datafits.jl
+# datafits.py
 # Blake Danziger
 # 1D Active Solids
 # MSc Theoretical Physics Dissertation (2025)

@@ -38,6 +38,11 @@ function findfreefilename(filenameprefix::String, extension::String=".txt")::Str
     return newname
 end
 
+"""
+Checks if the given file path already exists and asks the user if they would like to overwrite the file.
+
+If user says `no`, then a suffix `"_n"` is added to the end of the filename for the first free `n`.
+"""
 function checkfilename(outputfilename::String, extensionlength::Int=4)::String
     if isfile(outputfilename)
         saveddate::DateTime = getfirstsaveddate(outputfilename)

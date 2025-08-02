@@ -280,10 +280,11 @@ function oc_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
         legendlabels = (sp -> "$(sp.boxwidth)").(sp_array[sortedorder])
         paramsstr = "t=$(Int64(sp_array[1].totaltime))  N=$(sp_array[1].numparticles)  $(interactionstr)"
     elseif sweeptype == interactionstrengthsweep
+        interactionstr = "$(sp_array[1].interaction)"
         legendtitle = "Interaction Fliprate"
         sortedorder = sortperm([sp.interactionfliprate for sp in sp_array])
         legendlabels = (sp -> "$(sp.interactionfliprate)").(sp_array[sortedorder])
-        paramsstr = "t=$(Int64(sp_array[1].totaltime))  N=$(sp_array[1].numparticles)  Boxwidth=$(sp_array[1].boxwidth)"
+        paramsstr = "t=$(Int64(sp_array[1].totaltime))  N=$(sp_array[1].numparticles)  Boxwidth=$(sp_array[1].boxwidth). $(interactionstr)"
     end
 
 
