@@ -13,8 +13,8 @@ from simulation.sim_structs import SimulationData, SimulationParameters
 from file_management.simdata_files import loadsim, loadsim_n_lines, get_simfile_type, prepare_simfile
 from utils.paths import fix_path
 
-SPIN_UP_COLOR = "blue"
-SPIN_DOWN_COLOR = "red"
+SPIN_UP_COLOR = "red"
+SPIN_DOWN_COLOR = "blue"
 FOLLOWING_COLOR = "darkorchid"
 ALPHA = 0.3
 PLOT_YLIM = 0.2
@@ -34,16 +34,19 @@ def print_save_progress(current_frame: int, total_frames: int):
     if (total_frames - current_frame) / total_frames < .01 or (total_frames - current_frame) <= 2: 
         print(f"\033[KSaving File...", end="\r")
 
-def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 30, y_offset=False, save_filepath=None, debug_mode=None, delete_gif=False, file_suffix=None): 
+def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 30, y_offset=False, save_filepath=None, debug_mode=None, delete_gif=False, file_suffix=None):
+    # prepare simfile if needed
+    prepared_file_path = prepare_simfile(file_str)
+    
     if file_suffix is None:
         file_suffix = ""
     
     # load data from file
     if debug_mode is None:
-        sim_data:SimulationData = loadsim(file_str)
+        sim_data:SimulationData = loadsim(prepared_file_path)
     elif debug_mode == "short":
         # load only a few frames for quick debug
-        sim_data:SimulationData = loadsim_n_lines(file_str, 0, DEBUG_MODE_SHORT_NFRAMES, change_simparams=True)
+        sim_data:SimulationData = loadsim_n_lines(prepared_file_path, 0, DEBUG_MODE_SHORT_NFRAMES, change_simparams=True)
 
     # calculate positions from data
 
@@ -131,12 +134,15 @@ def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 3
 
 def sim_animate_follow(file_str:str, particle_to_follow:int, show:bool = True, save:bool = False, fps:float = 30, y_offset=False, save_filepath=None, debug_mode=None, delete_gif=False):    
     
+    # prepare simfile if needed
+    prepared_file_path = prepare_simfile(file_str)
+    
     # load data from file
     if debug_mode is None:
-        sim_data:SimulationData = loadsim(file_str)
+        sim_data:SimulationData = loadsim(prepared_file_path)
     elif debug_mode == "short":
         # load only a few frames for quick debug
-        sim_data:SimulationData = loadsim_n_lines(file_str, 0, DEBUG_MODE_SHORT_NFRAMES, change_simparams=True)
+        sim_data:SimulationData = loadsim_n_lines(prepared_file_path, 0, DEBUG_MODE_SHORT_NFRAMES, change_simparams=True)
 
     # calculate positions from data
 

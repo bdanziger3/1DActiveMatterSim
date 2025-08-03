@@ -270,14 +270,12 @@ Loads the final state of the final segment of a data file.
 
 
     if serialized
-        deserializeddataline = deserializedatafileline(dataline, initialpos, simparams)
-        particle_data = parse.(Float64, split(deserializeddataline, ","))
+        posmatrix[1,:], spinsmatrix[1,:] = deserializelinegetarrays(dataline, initialpos, simparams)
     else
         particle_data = parse.(Float64, split(dataline, ","))
+        posmatrix[1,:] = copy(particle_data[1:simparams.numparticles])
+        spinsmatrix[1,:] = Int8.(copy(particle_data[simparams.numparticles+1:end]))
     end
-
-    posmatrix[1,:] = copy(particle_data[1:simparams.numparticles])
-    spinsmatrix[1,:] = Int8.(copy(particle_data[simparams.numparticles+1:end]))
 
     # close file
     close(file)

@@ -56,6 +56,28 @@ function plotfft(datamatrix::Matrix{<:Real}, simparams::SimulationParameters)
 
 end
 
+function getfftreversaltime(podata::Matrix{<:Real}, snapshot_dt::Float64=0.01)::Float64
+    settledindex = 10000
+    settleddata = podata[:, settledindex:end]
+
+    # Run FFT on data
+    transformeddata_i = rfft(settleddata[2, :])
+
+    nsamples = size(settleddata)[2]
+    samplingfreq = 1 / snapshot_dt
+    freqs = rfftfreq(nsamples, samplingfreq)
+
+    max_val, max_i = findmax(abs.(transformeddata_i))
+    maxfreq = freqs[max_i]
+    
+    f_avg = sum(freqs .* abs.(transformeddata_i)) / sum(abs.(transformeddata_i)) # Spectral centroid
+    reversaltime_avg = sum((1 ./ (2 .* freqs[2:end])) .* abs.(transformeddata_i[2:end])) / sum(abs.(transformeddata_i[2:end])) # Spectral centroid
+
+    println("maxfreq: $(maxfreq), avgfreq: $(f_avg), average reversal time: $(reversaltime_avg).")
+
+    return reversaltime_avg
+end
+
 
 function plotfftsweep(datamatrix::Matrix{<:Real}, sweepvalues::Array{<:Real}, outputplotdir::String="", sweepcolormap=ColorSchemes.balance, snapshot_dt::Float64=0.01)
 

@@ -53,7 +53,7 @@ function po_plot(filename::String, saveplot::Bool=false, savetxt::Bool=false, sh
     @assert nsegments == 1 "More than 1 segment in file $filename. Found $nsegments segments"
 
     # get the spin data from the file
-    spins, simparams = loadsimspins(inputfilename)
+    spins, simparams = loadsimspins(filename)
 
     # run polar order calculation on data
     pomatrix::Matrix{Float64} = polarorder(spins, simparams)
@@ -455,3 +455,14 @@ function po_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
         plt.show()
     end
 end
+
+longstartalign = fixpath("work/analysis/Polar Order/Align Simple/N1000-B100-T1000-I300-startaligned/polar_order.txt")
+longstartrand = fixpath("work/analysis/Polar Order/Align Simple/N1000-B100-T1000-I300/polar_order.txt")
+
+po_saveddata_plot(longstartrand, 1, 10000, true, false)
+po_saveddata_plot(longstartalign, 1, 10000, true, false)
+po_saveddata_plot(longstartrand, 40000, 60000, true, false)
+po_saveddata_plot(longstartalign, 40000, 60000, true, false)
+
+# getfftreversaltime(podata_rand)
+# getfftreversaltime(podata_aligned)
