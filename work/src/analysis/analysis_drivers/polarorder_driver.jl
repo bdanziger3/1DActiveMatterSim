@@ -47,11 +47,6 @@ Set `show` to display the plot.
 """
 function po_plot(filename::String, saveplot::Bool=false, savetxt::Bool=false, show::Bool=true)
     
-    # get file info
-    nsegments, serialized = getsimfiletype(filename)
-
-    @assert nsegments == 1 "More than 1 segment in file $filename. Found $nsegments segments"
-
     # get the spin data from the file
     spins, simparams = loadsimspins(filename)
 
@@ -309,7 +304,7 @@ of all the files in a given directory, and plots the lines on the same axes.
 Set `savetxt` to save a .txt file with the orientation self-correlation function results
 Set `show` to display the plot as well as saving it.
 """
-function po_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, saveplot::Bool=true, savetxt::Bool=true, show::Bool=false)
+function po_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, saveplot::Bool=true, savetxt::Bool=true, individualplots::Bool=false, show::Bool=false)
     
     filename_prefix = "polar_order_sweep_plot"
     
@@ -330,24 +325,14 @@ function po_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
     sp_array::Array{SimulationParameters} = []
     for (i, filename) in enumerate(datafiles)
         inputfilename = joinpath(dirname, filename)
-
-        # add simparams to array
-        initialstate = loadsim_nlines(inputfilename, 1, 1, rowwisetxt, true)
-        push!(sp_array, initialstate.simparams)
-
+        
         # run correlation function and add to plot
-        # get the `SimulationData` from the file
-
-        # get file info
-        nsegments, serialized = getsimfiletype(inputfilename)
-
-        if nsegments != 1
-            println("More than 1 segment in file $filename. Found $nsegments segments")
-            continue
-        end
-
+        # get the spins from the file
+        
         # load the spins from the file
         spins, simparams = loadsimspins(inputfilename)
+        # add simparams to array
+        push!(sp_array, simparams)
 
         # run polar order calculation on data
         pomatrix_i::Matrix{Float64} = polarorder(spins, simparams)
@@ -428,6 +413,26 @@ function po_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
     ### Plotting ####
     #################
 
+    # if `individualplots`, plot the data seperately
+    if individualplots
+        for (i, s) in enumerate(sortedorder)        
+            # clear plot
+            plt.clf()
+
+            plt.grid(true, zorder=0)
+            plt.plot(full_pomatrix[1, :], full_pomatrix[s+1, :])
+            plt.xlabel(PO_PLOT_XLABEL)
+            plt.ylabel(PO_PLOT_YLABEL)
+            plt.title("$(PO_PLOT_TITLE_TOPLINE)\n N=$(sp_array[s].numparticles)  Boxwidth=$(sp_array[s].boxwidth)  t=$(Int64(sp_array[s].totaltime))  $(sp_array[1].interaction) I=$(sp_array[s].interactionfliprate)")
+
+            # figure out swept value and var and add to names
+            datadirname = getanalysissweepdir(POLAR_ORDER_DIRNAME, sp_array, sweepname)
+            outputfilename = joinpath(datadirname, "$(FILE_NAME_PREFIX)_$(sweepvalues[i]).pdf")
+            outputfilename = checkfilename(outputfilename)
+            plt.savefig(outputfilename, bbox_inches = "tight", pad_inches=0.1)
+        end
+    end
+
     # clear plot
     plt.clf()
     
@@ -456,13 +461,10 @@ function po_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
     end
 end
 
-longstartalign = fixpath("work/analysis/Polar Order/Align Simple/N1000-B100-T1000-I300-startaligned/polar_order.txt")
+d10baxsweepdir = fixpath("work/data/sweeps/alignsimple/boxwidthsweep/d10")
 longstartrand = fixpath("work/analysis/Polar Order/Align Simple/N1000-B100-T1000-I300/polar_order.txt")
 
-po_saveddata_plot(longstartrand, 1, 10000, true, false)
-po_saveddata_plot(longstartalign, 1, 10000, true, false)
-po_saveddata_plot(longstartrand, 40000, 60000, true, false)
-po_saveddata_plot(longstartalign, 40000, 60000, true, false)
+po_plot_dir(d10baxsweepdir, "Boxwidth_sweep_d10_3-8", boxwidthsweep, true, true, true)
 
 # getfftreversaltime(podata_rand)
 # getfftreversaltime(podata_aligned)
