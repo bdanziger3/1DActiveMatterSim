@@ -83,6 +83,8 @@ function getanalysissweepdir(correlationfunction::String, simparams::Array{Simul
         interactionstr = "Align Simple"
     elseif simparams[1].interaction == antialignsimple
         interactionstr = "Antialign Simple"
+    elseif simparams[1].interaction == turnaway
+        interactionstr = "Turn Away"
     end
    
     interactiondir::String = joinpath(correlationfnctdir, interactionstr)

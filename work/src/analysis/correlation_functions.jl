@@ -66,45 +66,45 @@ end
 
 
 """
-Polar Order
+Mean Spin
 
 Calculates the average spin over all particles as a function of time
 """
-function polarorder(simdata::SimulationData)::Matrix{Float64}
-    # returns the Polar Order as a function of time throughout one simulation
+function meanspin(simdata::SimulationData)::Matrix{Float64}
+    # returns the Mean Spin as a function of time throughout one simulation
 
     times = getsavetimes(simdata.simparams)
     nsaves = getnsaves(simdata.simparams)
     spins = copy(simdata.spins)
     
-    polarordermat::Matrix{Float64} = zeros(2, nsaves)
+    meanspinmat::Matrix{Float64} = zeros(2, nsaves)
 
     # for t in 1:nsaves
-    @showprogress 1 "Calculating Polar Order..." for t in 1:nsaves
-        polarordermat[:, t] = [times[t]; sum(spins[t, :]) / simdata.simparams.numparticles]
+    @showprogress 1 "Calculating Mean Spin..." for t in 1:nsaves
+        meanspinmat[:, t] = [times[t]; sum(spins[t, :]) / simdata.simparams.numparticles]
     end
 
-    return polarordermat
+    return meanspinmat
 end
 
 """
-Polar Order but with different parameters
+Mean Spin but with different parameters
 
 Calculates the average spin over all particles as a function of time
 """
-function polarorder(spins::Matrix{Int8}, simparams::SimulationParameters)::Matrix{Float64}
-    # returns the Polar Order as a function of time throughout one simulation
+function meanspin(spins::Matrix{Int8}, simparams::SimulationParameters)::Matrix{Float64}
+    # returns the Mean Spin as a function of time throughout one simulation
     times = getsavetimes(simparams)
     nsaves = getnsaves(simparams)
     
-    polarordermat::Matrix{Float64} = zeros(2, nsaves)
+    meanspinmat::Matrix{Float64} = zeros(2, nsaves)
 
     # for t in 1:nsaves
-    @showprogress 1 "Calculating Polar Order..." for t in 1:nsaves
-        polarordermat[:, t] = [times[t]; sum(spins[t, :]) / simparams.numparticles]
+    @showprogress 1 "Calculating Mean Spin..." for t in 1:nsaves
+        meanspinmat[:, t] = [times[t]; sum(spins[t, :]) / simparams.numparticles]
     end
 
-    return polarordermat
+    return meanspinmat
 end
 
 """

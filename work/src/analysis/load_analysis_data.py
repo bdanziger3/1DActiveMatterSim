@@ -27,6 +27,7 @@ class AnalysisType(Enum):
     MSD = 1
     ORIENTATION_CORRELATION = 2
     POLAR_ORDER = 3
+    MEAN_SPIN = 4
 
 class SweepType(Enum):
     NONE = 0
@@ -42,6 +43,8 @@ def parse_analysis_type(datafile_header:str) -> AnalysisType:
         return AnalysisType.ORIENTATION_CORRELATION
     elif "polar order data" in datafile_header.lower():
         return AnalysisType.POLAR_ORDER
+    elif "mean spin data" in datafile_header.lower():
+        return AnalysisType.MEAN_SPIN
     else:
         assert False, f"Could not parse header {datafile_header}."
 

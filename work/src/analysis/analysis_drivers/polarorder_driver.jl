@@ -4,7 +4,7 @@
 # 1D Active Solids
 # MSc Theoretical Physics Dissertation (2025)
 
-# File containing driver code to run polar order analysis functions on various data files and plot results
+# File containing driver code to run polar order and mean spin as a function of time analysis on various data files and plot results
 ########################
 
 using PyPlot
@@ -22,17 +22,26 @@ include("../analysis_functions.jl")
 @enum SweepType densitysweep boxwidthsweep interactionstrengthsweep nosweep
 
 
+MS_LINE_DEFAULT_COLOR = "darkviolet"
+MEAN_SPIN_DIRNAME = "Mean Spin"
+FILE_NAME_PREFIX = "mean_spin"
+
+MS_PLOT_XLABEL = "Time"
+MS_PLOT_YLABEL = "Mean Spin \n$(raw"$\langle S_i \rangle_{i} = \frac{1}{N}\sum^N_i S_i$")"
+MS_PLOT_TITLE_TOPLINE = "Mean Spin of Active Particle Simulation"
+
+MS_LINE_DENSITY_COLORMAP = ColorSchemes.Reds_8
+MS_LINE_INTERACTION_COLORMAP = ColorSchemes.Blues_8
+MS_LINE_BOXWIDTH_COLORMAP = ColorSchemes.Greens_8
+
+
 PO_LINE_DEFAULT_COLOR = "darkviolet"
 POLAR_ORDER_DIRNAME = "Polar Order"
-FILE_NAME_PREFIX = "polar_order"
+PO_FILE_NAME_PREFIX = "polar_order"
 
-PO_PLOT_XLABEL = "Time"
-PO_PLOT_YLABEL = "Polar Order \n$(raw"$\langle S_i \rangle_{i} = \frac{1}{N}\sum^N_i S_i$")"
+PO_PLOT_YLABEL = "Mean Spin \n$(raw"$\frac{1}{N}\sum^N_i \left| S_i \right| $")"
 PO_PLOT_TITLE_TOPLINE = "Polar Order of Active Particle Simulation"
 
-PO_LINE_DENSITY_COLORMAP = ColorSchemes.Reds_8
-PO_LINE_INTERACTION_COLORMAP = ColorSchemes.Blues_8
-PO_LINE_BOXWIDTH_COLORMAP = ColorSchemes.Greens_8
 
 
 
@@ -40,25 +49,25 @@ PO_LINE_BOXWIDTH_COLORMAP = ColorSchemes.Greens_8
 
 
 """
-Produces a line plot of the polar order as a function of the time
+Produces a line plot of the mean spin as a function of the time
 
-Set `savetxt=true` to save a .txt file with the polar order data results
+Set `savetxt=true` to save a .txt file with the mean spin data results
 Set `show` to display the plot.
 """
-function po_plot(filename::String, saveplot::Bool=false, savetxt::Bool=false, show::Bool=true)
+function ms_plot(filename::String, saveplot::Bool=false, savetxt::Bool=false, show::Bool=true)
     
     # get the spin data from the file
     spins, simparams = loadsimspins(filename)
 
-    # run polar order calculation on data
-    pomatrix::Matrix{Float64} = polarorder(spins, simparams)
+    # run mean spin calculation on data
+    pomatrix::Matrix{Float64} = meanspin(spins, simparams)
 
     # save as a datafile if requested
     if savetxt
-        outputtextfilefullpath = joinpath(getanalysisdir(POLAR_ORDER_DIRNAME, simparams), "$(FILE_NAME_PREFIX).txt")
+        outputtextfilefullpath = joinpath(getanalysisdir(MEAN_SPIN_DIRNAME, simparams), "$(FILE_NAME_PREFIX).txt")
         outputtextfilefullpath = checkfilename(outputtextfilefullpath)
         open(outputtextfilefullpath, "w") do io
-            println(io, "Polar Order Data")
+            println(io, "Mean Spin Data")
             println(io, "Simulation Parameters")
             println(io, csv_serialize(simparams))
             println(io, "Plot Data")
@@ -85,14 +94,14 @@ function po_plot(filename::String, saveplot::Bool=false, savetxt::Bool=false, sh
     
     plt.grid(true, zorder=0)
     plt.plot(pomatrix[1, :], pomatrix[2, :])
-    plt.xlabel(PO_PLOT_XLABEL)
-    plt.ylabel(PO_PLOT_YLABEL)
-    plt.title("$(PO_PLOT_TITLE_TOPLINE)\n N=$(simparams.numparticles)  Boxwidth=$(simparams.boxwidth)  t=$(Int64(simparams.totaltime))  $(interactionstr)")
+    plt.xlabel(MS_PLOT_XLABEL)
+    plt.ylabel(MS_PLOT_YLABEL)
+    plt.title("$(MS_PLOT_TITLE_TOPLINE)\n N=$(simparams.numparticles)  Boxwidth=$(simparams.boxwidth)  t=$(Int64(simparams.totaltime))  $(interactionstr)")
     
 
     if saveplot
         # get dir path to save plot
-        datadirname = getanalysisdir(POLAR_ORDER_DIRNAME, simparams)
+        datadirname = getanalysisdir(MEAN_SPIN_DIRNAME, simparams)
         outputfilename = joinpath(datadirname, "$(FILE_NAME_PREFIX).pdf")
         outputfilename = checkfilename(outputfilename)
         plt.savefig(outputfilename, bbox_inches = "tight", pad_inches=0.1)
@@ -108,11 +117,11 @@ Plots the data previously saved to a `.txt` file.
 
 Can specify `minindex` and `maxindex` to only plot that many data points along the horizontal axis.
 """
-function po_saveddata_plot(txtfilename::String, minindex::Int64=1, maxindex::Int64=0, saveplot::Bool=false, show::Bool=true)
+function ms_saveddata_plot(txtfilename::String, minindex::Int64=1, maxindex::Int64=0, saveplot::Bool=false, show::Bool=true)
     
 
     # get the plot data from the file
-    xydatamat, sweeptype, simparamsout, legendvalues = po_saveddata_load(txtfilename)
+    xydatamat, sweeptype, simparamsout, legendvalues = ms_saveddata_load(txtfilename)
 
     # handle default `maxindex` behavior
     if maxindex == 0
@@ -127,19 +136,19 @@ function po_saveddata_plot(txtfilename::String, minindex::Int64=1, maxindex::Int
 
     local paramsstr
     if sweeptype != nosweep
-        filenameprefix = "polar_order_plot_$(sweeptype)"
+        filenameprefix = "mean_spin_plot_$(sweeptype)"
         local legendlabels::Array{String}
         local legendtitle::String
         local sweepcm
         if sweeptype == densitysweep
             legendtitle = "Number of Particles"
-            sweepcm = PO_LINE_DENSITY_COLORMAP
+            sweepcm = MS_LINE_DENSITY_COLORMAP
         elseif sweeptype == boxwidthsweep
             legendtitle = "Box Width"
-            sweepcm = PO_LINE_BOXWIDTH_COLORMAP
+            sweepcm = MS_LINE_BOXWIDTH_COLORMAP
         elseif sweeptype == interactionstrengthsweep
             legendtitle = "Interaction Fliprate"
-            sweepcm = PO_LINE_INTERACTION_COLORMAP
+            sweepcm = MS_LINE_INTERACTION_COLORMAP
         end
         
         legendlabels = (val -> "$val").(legendvalues)
@@ -158,7 +167,7 @@ function po_saveddata_plot(txtfilename::String, minindex::Int64=1, maxindex::Int
         plt.legend(legendlabels, title=legendtitle)
 
     else
-        filenameprefix = "polar_order_plot"
+        filenameprefix = "mean_spin_plot"
 
         # prepare strings for labels used in plot
         local interactionstr::String = ""
@@ -172,12 +181,12 @@ function po_saveddata_plot(txtfilename::String, minindex::Int64=1, maxindex::Int
         paramsstr = "N=$(simparamsout.numparticles)  Boxwidth=$(simparamsout.boxwidth)  t=$(Int64(simparamsout.totaltime))  $(interactionstr)"
 
         # plot the line
-        plt.plot(xydatamat[1, minindex:maxindex], xydatamat[2, minindex:maxindex], color=PO_LINE_DEFAULT_COLOR)
+        plt.plot(xydatamat[1, minindex:maxindex], xydatamat[2, minindex:maxindex], color=MS_LINE_DEFAULT_COLOR)
     end
 
-    plt.xlabel(PO_PLOT_XLABEL)
-    plt.ylabel(PO_PLOT_YLABEL)
-    plt.title("$(PO_PLOT_TITLE_TOPLINE)\n$(paramsstr)")        
+    plt.xlabel(MS_PLOT_XLABEL)
+    plt.ylabel(MS_PLOT_YLABEL)
+    plt.title("$(MS_PLOT_TITLE_TOPLINE)\n$(paramsstr)")        
     
     if saveplot
         # get dir path to save plot
@@ -220,14 +229,14 @@ Returns a tuple of 4 objects:
 
     `legendvalues`:     The list of values of the swept parameter in the sweep. If the file is not for a sweep, contains `[nothing]`.
 """
-function po_saveddata_load(txtfilename::String)
+function ms_saveddata_load(txtfilename::String)
     
     # get the plot data from the file
     file = open(txtfilename, "r")
 
     line = readline(file)
     # Check that data file header is correct
-    @assert contains(lowercase(line), "polar order data") "PO data file does not have correct first line. File may be corrupted."
+    @assert contains(lowercase(line), "mean spin data") "PO data file does not have correct first line. File may be corrupted."
     
     # check if it is a sweep
     line = readline(file)
@@ -298,15 +307,15 @@ end
 
 
 """
-Produces a line plot of the polar order as a function of the time interval `t`
+Produces a line plot of the mean spin as a function of the time interval `t`
 of all the files in a given directory, and plots the lines on the same axes.
 
 Set `savetxt` to save a .txt file with the orientation self-correlation function results
 Set `show` to display the plot as well as saving it.
 """
-function po_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, saveplot::Bool=true, savetxt::Bool=true, individualplots::Bool=false, show::Bool=false)
+function ms_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, saveplot::Bool=true, savetxt::Bool=true, individualplots::Bool=false, show::Bool=false)
     
-    filename_prefix = "polar_order_sweep_plot"
+    filename_prefix = "mean_spin_sweep_plot"
     
     # initialize data matrix
     local full_pomatrix::Matrix{Float64} = zeros(0,0)
@@ -334,8 +343,8 @@ function po_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
         # add simparams to array
         push!(sp_array, simparams)
 
-        # run polar order calculation on data
-        pomatrix_i::Matrix{Float64} = polarorder(spins, simparams)
+        # run mean spin calculation on data
+        pomatrix_i::Matrix{Float64} = meanspin(spins, simparams)
 
         # if `full_pomatrix` is empty, add x-axis data and first line of y-axis data
         if length(full_pomatrix) == 0
@@ -368,31 +377,31 @@ function po_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
         sortedorder = sortperm([sp.numparticles for sp in sp_array])
         sweepvalues = (sp -> sp.numparticles).(sp_array[sortedorder])
         paramsstr = "t=$(Int64(sp_array[1].totaltime))  Boxwidth=$(sp_array[1].boxwidth)  $(interactionstr)"
-        sweepcm = PO_LINE_DENSITY_COLORMAP
+        sweepcm = MS_LINE_DENSITY_COLORMAP
     elseif sweeptype == boxwidthsweep
         legendtitle = "Box Width"
         sortedorder = sortperm([sp.boxwidth for sp in sp_array])
         sweepvalues = (sp -> sp.boxwidth).(sp_array[sortedorder])
         paramsstr = "t=$(Int64(sp_array[1].totaltime))  N=$(sp_array[1].numparticles)  $(interactionstr)"
-        sweepcm = PO_LINE_BOXWIDTH_COLORMAP
+        sweepcm = MS_LINE_BOXWIDTH_COLORMAP
     elseif sweeptype == interactionstrengthsweep
         interactionstr = "$(sp_array[1].interaction)"
         legendtitle = "Interaction Fliprate"
         sortedorder = sortperm([sp.interactionfliprate for sp in sp_array])
         sweepvalues = (sp -> sp.interactionfliprate).(sp_array[sortedorder])
         paramsstr = "t=$(Int64(sp_array[1].totaltime))  N=$(sp_array[1].numparticles)  Boxwidth=$(sp_array[1].boxwidth)  $(interactionstr)"
-        sweepcm = PO_LINE_INTERACTION_COLORMAP
+        sweepcm = MS_LINE_INTERACTION_COLORMAP
     end
     legendlabels::Array{String} = (val -> "$(val)").(sweepvalues)
 
 
     # save as a datafile if requested
     if savetxt
-        outputtextfilefullpath = joinpath(getanalysissweepdir(POLAR_ORDER_DIRNAME, sp_array[sortedorder], sweepname), "$(filename_prefix).txt")
+        outputtextfilefullpath = joinpath(getanalysissweepdir(MEAN_SPIN_DIRNAME, sp_array[sortedorder], sweepname), "$(filename_prefix).txt")
         outputtextfilefullpath = checkfilename(outputtextfilefullpath)
 
         open(outputtextfilefullpath, "w") do io
-            println(io, "Polar Order Data")
+            println(io, "Mean Spin Data")
             println(io, "Sweep Type: $(sweeptype)")
             println(io, "Sweep Values")
             writedlm(io, permutedims(legendlabels), ",")
@@ -421,12 +430,12 @@ function po_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
 
             plt.grid(true, zorder=0)
             plt.plot(full_pomatrix[1, :], full_pomatrix[s+1, :])
-            plt.xlabel(PO_PLOT_XLABEL)
-            plt.ylabel(PO_PLOT_YLABEL)
-            plt.title("$(PO_PLOT_TITLE_TOPLINE)\n N=$(sp_array[s].numparticles)  Boxwidth=$(sp_array[s].boxwidth)  t=$(Int64(sp_array[s].totaltime))  $(sp_array[1].interaction) I=$(sp_array[s].interactionfliprate)")
+            plt.xlabel(MS_PLOT_XLABEL)
+            plt.ylabel(MS_PLOT_YLABEL)
+            plt.title("$(MS_PLOT_TITLE_TOPLINE)\n N=$(sp_array[s].numparticles)  Boxwidth=$(sp_array[s].boxwidth)  t=$(Int64(sp_array[s].totaltime))  $(sp_array[1].interaction) I=$(sp_array[s].interactionfliprate)")
 
             # figure out swept value and var and add to names
-            datadirname = getanalysissweepdir(POLAR_ORDER_DIRNAME, sp_array, sweepname)
+            datadirname = getanalysissweepdir(MEAN_SPIN_DIRNAME, sp_array, sweepname)
             outputfilename = joinpath(datadirname, "$(FILE_NAME_PREFIX)_$(sweepvalues[i]).pdf")
             outputfilename = checkfilename(outputfilename)
             plt.savefig(outputfilename, bbox_inches = "tight", pad_inches=0.1)
@@ -444,13 +453,13 @@ function po_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
     end
 
     plt.legend(legendlabels, title=legendtitle)
-    plt.xlabel(PO_PLOT_XLABEL)
-    plt.ylabel(PO_PLOT_YLABEL)
-    plt.title("$(PO_PLOT_TITLE_TOPLINE)\n$(paramsstr)")
+    plt.xlabel(MS_PLOT_XLABEL)
+    plt.ylabel(MS_PLOT_YLABEL)
+    plt.title("$(MS_PLOT_TITLE_TOPLINE)\n$(paramsstr)")
     
     if saveplot
         # get dir path to save plot
-        datadirname = getanalysissweepdir(POLAR_ORDER_DIRNAME, sp_array, sweepname)
+        datadirname = getanalysissweepdir(MEAN_SPIN_DIRNAME, sp_array, sweepname)
         outputfilename = joinpath(datadirname, "$(filename_prefix).pdf")
         outputfilename = checkfilename(outputfilename)
         plt.savefig(outputfilename, bbox_inches = "tight", pad_inches=0.1)
@@ -460,4 +469,3 @@ function po_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
         plt.show()
     end
 end
-
