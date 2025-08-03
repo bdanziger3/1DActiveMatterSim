@@ -236,7 +236,7 @@ function ms_saveddata_load(txtfilename::String)
 
     line = readline(file)
     # Check that data file header is correct
-    @assert contains(lowercase(line), "mean spin data") "PO data file does not have correct first line. File may be corrupted."
+    @assert contains(lowercase(line), "mean spin data") "MS data file does not have correct first line. File may be corrupted."
     
     # check if it is a sweep
     line = readline(file)
@@ -288,7 +288,7 @@ function ms_saveddata_load(txtfilename::String)
     dataline = readline(file)
     tdata = parse.(Float64, split(dataline, ","))
     
-    # read y data (PO)
+    # read y data (MS)
     nshots = length(legendvalues)
     podata = zeros(nshots, length(tdata))
 
