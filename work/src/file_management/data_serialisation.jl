@@ -169,14 +169,17 @@ Calculate the number of decimal places needed that preserves the position inform
 
 Keep `EXCESS_DECIMAL_PLACES=2` decimal places smaller than `dx`
 """
-function roundpositions(positions::Array{Float64}, simparams::SimulationParameters)::String
+function roundpositions(positions::Array{Float64}, simparams::SimulationParameters, returnarray::Bool=false)::Any
     EXCESS_DECIMAL_PLACES::Int64 = 2
     dx::Float64 = simparams.dt * simparams.v0
     ndecimalplaces::Int64 = Int64(ceil(-log10(dx))) + EXCESS_DECIMAL_PLACES
     roundedpositions = round.(positions, digits=ndecimalplaces)
-    positionstring = join(roundedpositions, ",")
 
-    return positionstring
+    if returnarray
+        return roundedpositions
+    else
+        return join(roundedpositions, ",")
+    end
 end
 
 
@@ -205,7 +208,7 @@ function serializedatafileline(dataline::String, initialpositions::Array{Float64
 end
 
 """
-Take a string of serialized data from a file and return the deserialized version
+Take a string of serialized data from a file and return the deserialized version as a string.
 """
 function deserializedatafileline(dataline::String, initialpositions::Array{Float64}, simparams::SimulationParameters, isfirstline::Bool=false)::String
     # load in string, separate positions and spins
@@ -223,6 +226,55 @@ function deserializedatafileline(dataline::String, initialpositions::Array{Float
         positiondata::Array{Float64} = deserializepositions(posstring, initialpositions, simparams)
         roundedpositionstring = roundpositions(positiondata, simparams)
         return "$(roundedpositionstring),$(join(spindata, ','))"
+    end
+end
+
+
+"""
+Take a string of serialized data from a file and return either the spins or position data.
+"""
+function deserializelineonedatatype(dataline::String, datatype::String, simparams::SimulationParameters, initialpositions::Array{Float64}=zeros(), isfirstline::Bool=false)::Array{<:Real}
+    # load in string, separate positions and spins
+    datalinelist = split(dataline, POS_SPINS_SEPARATOR)
+
+    if contains(lowercase(datatype), "spin")
+        # spins
+        encodedspins::String = datalinelist[2]
+        return deserializespins(encodedspins, simparams.numparticles)
+
+    else
+        # positions
+        posstring::String = datalinelist[1]
+
+        if isfirstline
+            # For the first state, keep the position data
+            return parse.(Float64, split(posstring, ","))
+        else
+            # decode the positions based on the initial positions
+            positiondata::Array{Float64} = deserializepositions(posstring, initialpositions, simparams)
+            return roundpositions(positiondata, simparams, true)
+        end
+    end
+end
+
+"""
+Take a string of serialized data from a file and return the positions and spins as arrays.
+"""
+function deserializelinegetarrays(dataline::String, initialpositions, simparams::SimulationParameters, isfirstline::Bool=false)::Tuple{Array{<:Real}, Array{<:Real}}
+    # load in string, separate positions and spins
+    datalinelist = split(dataline, POS_SPINS_SEPARATOR)
+
+    posstring::String = datalinelist[1]
+    encodedspins::String = datalinelist[2]
+    spins = deserializespins(encodedspins, simparams.numparticles)
+
+    if isfirstline
+        # For the first state, keep the position data
+        return parse.(Float64, split(posstring, ",")), spins
+    else
+        # decode the positions based on the initial positions
+        positiondata::Array{Float64} = deserializepositions(posstring, initialpositions, simparams)
+        return roundpositions(positiondata, simparams, true), spins
     end
 end
 

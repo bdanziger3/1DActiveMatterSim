@@ -52,25 +52,20 @@ function po_plot(filename::String, saveplot::Bool=false, savetxt::Bool=false, sh
 
     @assert nsegments == 1 "More than 1 segment in file $filename. Found $nsegments segments"
 
-    # get the `SimulationData` from the file
-    local sd::SimulationData
-    if serialized
-        sd = loadcompressedfile(filename)
-    else
-        sd = loadsim(filename, rowwisetxt)
-    end
+    # get the spin data from the file
+    spins, simparams = loadsimspins(inputfilename)
 
     # run polar order calculation on data
-    pomatrix::Matrix{Float64} = polarorder(sd)
+    pomatrix::Matrix{Float64} = polarorder(spins, simparams)
 
     # save as a datafile if requested
     if savetxt
-        outputtextfilefullpath = joinpath(getanalysisdir(POLAR_ORDER_DIRNAME, sd.simparams), "$(FILE_NAME_PREFIX).txt")
+        outputtextfilefullpath = joinpath(getanalysisdir(POLAR_ORDER_DIRNAME, simparams), "$(FILE_NAME_PREFIX).txt")
         outputtextfilefullpath = checkfilename(outputtextfilefullpath)
         open(outputtextfilefullpath, "w") do io
             println(io, "Polar Order Data")
             println(io, "Simulation Parameters")
-            println(io, csv_serialize(sd.simparams))
+            println(io, csv_serialize(simparams))
             println(io, "Plot Data")
             writedlm(io, pomatrix, ",")
         end
@@ -81,10 +76,10 @@ function po_plot(filename::String, saveplot::Bool=false, savetxt::Bool=false, sh
     #################
     # prepare strings for labels used in plot
     local interactionstr::String = ""
-    if sd.simparams.interaction == nointeraction
+    if simparams.interaction == nointeraction
         interactionstr = "no-interaction  "
     else
-        interactionstr = "$(sd.simparams.interaction) I=$(Int64(round(sd.simparams.interactionfliprate)))  "
+        interactionstr = "$(simparams.interaction) I=$(Int64(round(simparams.interactionfliprate)))  "
     end
 
 
@@ -97,12 +92,12 @@ function po_plot(filename::String, saveplot::Bool=false, savetxt::Bool=false, sh
     plt.plot(pomatrix[1, :], pomatrix[2, :])
     plt.xlabel(PO_PLOT_XLABEL)
     plt.ylabel(PO_PLOT_YLABEL)
-    plt.title("$(PO_PLOT_TITLE_TOPLINE)\n N=$(sd.simparams.numparticles)  Boxwidth=$(sd.simparams.boxwidth)  t=$(Int64(sd.simparams.totaltime))  $(interactionstr)")
+    plt.title("$(PO_PLOT_TITLE_TOPLINE)\n N=$(simparams.numparticles)  Boxwidth=$(simparams.boxwidth)  t=$(Int64(simparams.totaltime))  $(interactionstr)")
     
 
     if saveplot
         # get dir path to save plot
-        datadirname = getanalysisdir(POLAR_ORDER_DIRNAME, sd.simparams)
+        datadirname = getanalysisdir(POLAR_ORDER_DIRNAME, simparams)
         outputfilename = joinpath(datadirname, "$(FILE_NAME_PREFIX).pdf")
         outputfilename = checkfilename(outputfilename)
         plt.savefig(outputfilename, bbox_inches = "tight", pad_inches=0.1)
@@ -217,7 +212,7 @@ end
 """
 Loads the data previously saved to a `.txt` file.
 
-Returns a tuple of 3 objects:
+Returns a tuple of 4 objects:
 
 
     `xydatamatrix`:   The matrix holding the analysis data. Row 0 holds the x-axis data.
@@ -351,17 +346,11 @@ function po_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
             continue
         end
 
-        # get the `SimulationData` from the file
-        local sd::SimulationData
-        if serialized
-            sd = loadcompressedfile(inputfilename)
-        else
-            sd = loadsim(inputfilename, rowwisetxt)
-        end
+        # load the spins from the file
+        spins, simparams = loadsimspins(inputfilename)
 
         # run polar order calculation on data
-        pomatrix_i::Matrix{Float64} = polarorder(sd)
-        
+        pomatrix_i::Matrix{Float64} = polarorder(spins, simparams)
 
         # if `full_pomatrix` is empty, add x-axis data and first line of y-axis data
         if length(full_pomatrix) == 0

@@ -143,11 +143,13 @@ function plotfftsweep(datamatrix::Matrix{<:Real}, sweepvalues::Array{<:Real}, ou
     # Initial parameter guess: [a, b, c]
     p0 = [0.3, 0.0]
 
-    fit = curve_fit(model, xdata, ydata, p0)
+    # fit only data after ~I=20 since that is when we see the clusters form visually
+    min_sweep = 10
+    fit = curve_fit(model, xdata[sweepvalues .>= min_sweep], ydata[sweepvalues .>= min_sweep], p0)
     p_est = fit.param
     println("Estimated parameters: ", p_est)
 
-    bestfit_x = collect(1:200:1000)
+    bestfit_x = collect(1:200:1001)
     bestfit_logx = log10.(bestfit_x)
     bestfit_logy = model(bestfit_logx, p_est)
     bestfit_y = exp10.(bestfit_logy)

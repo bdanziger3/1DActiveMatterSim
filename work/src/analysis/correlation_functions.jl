@@ -88,6 +88,26 @@ function polarorder(simdata::SimulationData)::Matrix{Float64}
 end
 
 """
+Polar Order but with different parameters
+
+Calculates the average spin over all particles as a function of time
+"""
+function polarorder(spins::Matrix{Int8}, simparams::SimulationParameters)::Matrix{Float64}
+    # returns the Polar Order as a function of time throughout one simulation
+    times = getsavetimes(simparams)
+    nsaves = getnsaves(simparams)
+    
+    polarordermat::Matrix{Float64} = zeros(2, nsaves)
+
+    # for t in 1:nsaves
+    @showprogress 1 "Calculating Polar Order..." for t in 1:nsaves
+        polarordermat[:, t] = [times[t]; sum(spins[t, :]) / simparams.numparticles]
+    end
+
+    return polarordermat
+end
+
+"""
 Polar Order Window
 
 Calculates the average spin within a radius around each point in space as a function of space and time

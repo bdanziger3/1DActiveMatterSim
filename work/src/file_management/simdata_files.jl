@@ -394,6 +394,143 @@ function loadsim(inputfilename::String, filetype::DataFileType)::SimulationData
 end
 
 """
+Loads an existing simulation data file but only reads and saves the spins.
+"""
+function loadsimspins(inputfilename::String)::Tuple{Matrix{<:Int8}, SimulationParameters}
+    # see if data is compressed
+    nsegments, serialized = getsimfiletype(inputfilename)
+
+    if nsegments > 1
+        # create temporary collased file to read
+        collapsedfilename = findfreefilename(inputfilename[1:end-4])
+        collapsesegments(inputfilename, collapsedfilename, true)
+    else
+        collapsedfilename = inputfilename
+    end
+
+    # get preliminary info
+    initialsimdata::SimulationData = loadsim_nlines(collapsedfilename, 1, 1, rowwisetxt, true)
+    simparams::SimulationParameters = initialsimdata.simparams
+    nsaves = getnsaves(simparams)
+
+    # reopen file
+    datafile = open(collapsedfilename)
+
+    # step through the header and check it is as Expected
+
+    line = readline(datafile)
+    # Check that data file header is correct
+    @assert (contains(lowercase(line), "row wise txt") || contains(lowercase(line), "rowwise txt")) "Rowwisetxt data file does not have correct first line. File may be corrupted."
+        
+    # skip lines until start of particle data
+    for _ in 1:SEGMENT_HEADER_LINES
+        line = readline(datafile)
+    end
+
+    # positions and spins
+    spinsmatrix::Matrix{Int8} = zeros(nsaves, simparams.numparticles)
+
+    # read data differently depending on if file is serialized
+    if serialized
+        # read in serialized data from file
+        @showprogress 1 "Loading Simulation (N=$(simparams.numparticles), nsteps=$(nsaves))..." for i in 1:nsaves
+            dataline = readline(datafile)
+            spinsmatrix[i,:] = deserializelineonedatatype(dataline, "spins", simparams)
+        end
+    else
+        # read in regular data from file
+        @showprogress 1 "Loading Simulation (N=$(simparams.numparticles), nsteps=$(nsaves))..." for i in 1:nsaves
+            dataline = readline(datafile)
+            # find beginning of spins in string
+            comma_positions = findall(==(','), dataline)
+            spinsstartindex = comma_positions[simparams.numparticles] + 1
+            spinsmatrix[i,:] = parse.(Int8, split(dataline[spinsstartindex:end], ","))
+        end
+    end
+
+    # close file
+    close(datafile)
+
+    # delete the temporary file if one was made
+    if collapsedfilename != inputfilename
+        rm(collapsedfilename)
+    end
+
+    # return spins matrix
+    return spinsmatrix, simparams
+end
+
+"""
+Loads an existing simulation data file but only reads and saves the positions.
+"""
+function loadsimpositions(inputfilename::String)::Tuple{Matrix{<:Float64}, SimulationParameters}
+    # see if data is compressed
+    nsegments, serialized = getsimfiletype(inputfilename)
+
+    if nsegments > 1
+        # create temporary collased file to read
+        collapsedfilename = findfreefilename(inputfilename[1:end-4])
+        collapsesegments(inputfilename, collapsedfilename, true)
+    else
+        collapsedfilename = inputfilename
+    end
+
+    # get preliminary info
+    initialsimdata::SimulationData = loadsim_nlines(collapsedfilename, 1, 1, rowwisetxt, true)
+    initialpos = permutedims(initialsimdata.positions)
+    simparams::SimulationParameters = initialsimdata.simparams
+    nsaves = getnsaves(simparams)
+
+    # reopen file
+    datafile = open(collapsedfilename)
+
+    # step through the header and check it is as Expected
+
+    line = readline(datafile)
+    # Check that data file header is correct
+    @assert (contains(lowercase(line), "row wise txt") || contains(lowercase(line), "rowwise txt")) "Rowwisetxt data file does not have correct first line. File may be corrupted."
+        
+    # skip lines until start of particle data
+    for _ in 1:SEGMENT_HEADER_LINES
+        line = readline(datafile)
+    end
+
+    # positions and spins
+    posmatrix::Matrix{Float64} = zeros(nsaves, simparams.numparticles)
+
+    # read data differently depending on if file is serialized
+    if serialized
+        # read in serialized data from file
+        @showprogress 1 "Loading Simulation (N=$(simparams.numparticles), nsteps=$(nsaves))..." for i in 1:nsaves
+            dataline = readline(datafile)
+            isfirstline::Bool = (i == 1)
+            posmatrix[i,:] = deserializelineonedatatype(dataline, "positions", simparams, initialpos, isfirstline)
+        end
+    else
+        # read in regular data from file
+        @showprogress 1 "Loading Simulation (N=$(simparams.numparticles), nsteps=$(nsaves))..." for i in 1:nsaves
+            dataline = readline(datafile)
+            # find beginning of spins in string
+            comma_positions = findall(==(','), dataline)
+            positionsendindex = comma_positions[simparams.numparticles] - 1
+            posmatrix[i,:] = parse.(Float64, split(dataline[1:positionsendindex], ","))
+        end
+    end
+
+    # close file
+    close(datafile)
+
+    # delete the temporary file if one was made
+    if collapsedfilename != inputfilename
+        rm(collapsedfilename)
+    end
+
+    # return positions matrix
+    return posmatrix, simparams
+end
+
+
+"""
 Opens a file and returns the `SimulationParameters` of the first segment
 """
 function loadsimparams(inputfilename::String)::SimulationParameters
@@ -842,18 +979,15 @@ function loadcompressedfile(inputfilename::String)::SimulationData
     end
 
     # positions and spins
-    posmatrix = zeros(nsaves, simparams.numparticles)
-    spinsmatrix = zeros(nsaves, simparams.numparticles)
+    posmatrix::Matrix{Float64} = zeros(nsaves, simparams.numparticles)
+    spinsmatrix::Matrix{Int8} = zeros(nsaves, simparams.numparticles)
 
     # read in data from file
     @showprogress 1 "Loading Simulation (N=$(simparams.numparticles), nsteps=$(nsaves))..." for i in 1:nsaves
     # for i in 1:nsaves
         dataline = readline(datafile)
         isfirstline::Bool = (i == 1)                 
-        deserializeddataline = deserializedatafileline(dataline, initialpos, simparams, isfirstline)
-        particle_i_data::Array{Float64} = parse.(Float64, split(deserializeddataline, ","))
-        posmatrix[i,:] = copy(particle_i_data[1:simparams.numparticles])
-        spinsmatrix[i,:] = Int8.(copy(particle_i_data[simparams.numparticles+1:end]))
+        posmatrix[i,:], spinsmatrix[i,:] = deserializelinegetarrays(dataline, initialpos, simparams, isfirstline)
     end
 
     # close file
