@@ -431,13 +431,13 @@ function loadsimspins(inputfilename::String)::Tuple{Matrix{<:Int8}, SimulationPa
     # read data differently depending on if file is serialized
     if serialized
         # read in serialized data from file
-        @showprogress 1 "Loading Simulation (N=$(simparams.numparticles), nsteps=$(nsaves))..." for i in 1:nsaves
+        @showprogress 1 "Loading Spins From Simulation (N=$(simparams.numparticles), nsteps=$(nsaves))..." for i in 1:nsaves
             dataline = readline(datafile)
             spinsmatrix[i,:] = deserializelineonedatatype(dataline, "spins", simparams)
         end
     else
         # read in regular data from file
-        @showprogress 1 "Loading Simulation (N=$(simparams.numparticles), nsteps=$(nsaves))..." for i in 1:nsaves
+        @showprogress 1 "Loading Spins From Simulation (N=$(simparams.numparticles), nsteps=$(nsaves))..." for i in 1:nsaves
             dataline = readline(datafile)
             # find beginning of spins in string
             comma_positions = findall(==(','), dataline)
@@ -499,14 +499,14 @@ function loadsimpositions(inputfilename::String)::Tuple{Matrix{<:Float64}, Simul
     # read data differently depending on if file is serialized
     if serialized
         # read in serialized data from file
-        @showprogress 1 "Loading Simulation (N=$(simparams.numparticles), nsteps=$(nsaves))..." for i in 1:nsaves
+        @showprogress 1 "Loading Positions From Simulation (N=$(simparams.numparticles), nsteps=$(nsaves))..." for i in 1:nsaves
             dataline = readline(datafile)
             isfirstline::Bool = (i == 1)
             posmatrix[i,:] = deserializelineonedatatype(dataline, "positions", simparams, initialpos, isfirstline)
         end
     else
         # read in regular data from file
-        @showprogress 1 "Loading Simulation (N=$(simparams.numparticles), nsteps=$(nsaves))..." for i in 1:nsaves
+        @showprogress 1 "Loading Positions From Simulation (N=$(simparams.numparticles), nsteps=$(nsaves))..." for i in 1:nsaves
             dataline = readline(datafile)
             # find beginning of spins in string
             comma_positions = findall(==(','), dataline)

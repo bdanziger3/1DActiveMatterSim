@@ -461,10 +461,3 @@ function po_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
     end
 end
 
-d10baxsweepdir = fixpath("work/data/sweeps/alignsimple/boxwidthsweep/d10")
-longstartrand = fixpath("work/analysis/Polar Order/Align Simple/N1000-B100-T1000-I300/polar_order.txt")
-
-po_plot_dir(d10baxsweepdir, "Boxwidth_sweep_d10_3-8", boxwidthsweep, true, true, true)
-
-# getfftreversaltime(podata_rand)
-# getfftreversaltime(podata_aligned)
