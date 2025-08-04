@@ -8,6 +8,7 @@
 # Finds all Julia packages listed in `dependeencies.md` and installs them.
 ########################
 
+ENV["PYTHON"] = "/home/s2696227/python310/bin/python"
 using Pkg
 
 DEPENDENCIES_FILENAME = "dependencies.md"
@@ -37,6 +38,8 @@ function main()
                 pkginfo = split(strip(line[2:end]), " ")
                 pkgname = pkginfo[1]
                 pkgversion = pkginfo[2]
+
+                # build PyCall
                 Pkg.add(pkgname)
             end
         end

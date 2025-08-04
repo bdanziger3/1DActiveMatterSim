@@ -30,7 +30,7 @@ def main():
             else:
                 # get package name and install
                 pkg_name = line[1:].strip()
-                subprocess.check_call([sys.executable, "-m", "pip", "install", pkg_name])
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "--user", pkg_name])
 
 
 
