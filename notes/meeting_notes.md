@@ -220,6 +220,10 @@ $\log(n)$
 
 # Week of 6 Aug
 
-Questions: Citing software packages?? How do I do that
+### Questions:
+
+- Citing software packages?? How do I do that
+- What style guide should I use? AIP?
+- Should I use `I` or `we` in my paper? I had help from you guys but should it me `me` because it is a Masters' thesis?
 
 
