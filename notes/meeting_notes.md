@@ -182,7 +182,7 @@ $\log(n)$
 
 - Introduce active matter
 - talk about brownian motion
-- talk about 2D cases (flocking, Vicek)
+- talk about 2D cases (flocking, Vicsek)
 - then move to 1D cases
 
 
@@ -225,5 +225,7 @@ $\log(n)$
 - Citing software packages?? How do I do that
 - What style guide should I use? AIP?
 - Should I use `I` or `we` in my paper? I had help from you guys but should it me `me` because it is a Masters' thesis?
+
+- What is the measure of uncertainty? Vicsek mentions that the `"uncertainty is within the width of the data points"` but what does that mean with particle simulation and average velocity? Is he saying the uncertainty over many runs?
 
 

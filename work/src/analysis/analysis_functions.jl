@@ -21,38 +21,62 @@ Plots the FFT of a given data matrix.
 
 Assumes `datamatrix` is an array with 2 rows. x-data in row 0 and y-data in row 1
 """
-function plotfft(datamatrix::Matrix{<:Real}, simparams::SimulationParameters)
+function plotfft(datamatrix::Matrix{<:Real}, simparams::SimulationParameters, outfilepath::String="", show::Bool=false)
 
     settleddata = datamatrix[2,10000:end]
     transformeddata = rfft(settleddata)
     # transformeddata = fft(settleddata)
 
     nsamples = length(settleddata)
-    samplingfreq = simparams.snapshot_dt
+    samplingfreq = 1 / simparams.snapshot_dt
     
     freqs = rfftfreq(nsamples, samplingfreq)
     # freqs = fftfreq(nsamples, samplingfreq)
     nfreqs = length(freqs)
 
+    maxabs = maximum(abs.(transformeddata))
 
-    reconstructed = irfft(transformeddata, nsamples)
+    m = findall(abs.(transformeddata) .>= 0.05 * maxabs)
 
-    println(size(settleddata))
-    println(size(transformeddata))
-
-    # println(sortperm(transformeddata)[1:20])
+    println(m[end])
 
 
-
-    
-
-    plt.plot(freqs[1:200], transformeddata[1:200])
+    plt.clf()
+    plt.grid(true, zorder=0)
+    plt.plot(freqs, transformeddata ./ nsamples)
+    plt.xlim([0, freqs[m[end]]])
+    plt.ylabel("Normalised Amplitude")
+    plt.xlabel("Frequency (Hz)")
+    plt.title("FFT of Mean Spin\n N=$(simparams.numparticles)  Boxwidth=$(simparams.boxwidth)  t=$(Int64(simparams.totaltime))  $(simparams.interaction) I=$(simparams.interactionfliprate)")
     # plt.plot(freqs[1:20000], transformeddata[1:20000])
     # plt.plot(freqs, transformeddata)
     # plt.plot(datamatrix[1,:], reconstructed)
     # plt.plot(datamatrix[1,:], datamatrix[2,:])
     # plt.plot(datamatrix[1,:], reconstructed.-datamatrix[2,:])
-    plt.show()
+
+    if outfilepath != ""
+        plt.savefig(outfilepath, bbox_inches = "tight", pad_inches=0.1)
+    end
+    
+    
+    if show
+        plt.show()
+    end
+
+
+    plt.clf()
+    plt.grid(true, zorder=0)
+    plt.plot(1 ./ (2 .* freqs[2:100]), transformeddata[2:100] ./ nsamples)
+    plt.ylabel("Normalised Amplitude")
+    plt.xlabel("Reversal Time (s)")
+    plt.xlim([0, 50])
+    
+    if outfilepath != ""
+        plt.savefig("$(outfilepath[1:end-4])_revtime.pdf", bbox_inches = "tight", pad_inches=0.1)
+    end
+
+
+
 
 end
 
@@ -79,7 +103,7 @@ function getfftreversaltime(podata::Matrix{<:Real}, snapshot_dt::Float64=0.01)::
 end
 
 
-function plotfftsweep(datamatrix::Matrix{<:Real}, sweepvalues::Array{<:Real}, outputplotdir::String="", sweepcolormap=ColorSchemes.balance, snapshot_dt::Float64=0.01)
+function plotfftsweep(datamatrix::Matrix{<:Real}, sweepvalues::Array{<:Real}, outputplotdir::String="", sweepcolormap=ColorSchemes.balance, snapshot_dt::Float64=0.01, show::Bool=false)
 
     nshots = size(datamatrix)[1] - 1
     settledindex = 10000
@@ -102,7 +126,7 @@ function plotfftsweep(datamatrix::Matrix{<:Real}, sweepvalues::Array{<:Real}, ou
         nfreqs = length(freqs)
 
         linecolor = get(sweepcolormap, (i / nshots))
-        plt.plot(freqs[1:100], transformeddata_i[1:100], color=(linecolor.r, linecolor.g, linecolor.b))
+        plt.plot(freqs[1:100], transformeddata_i[1:100] ./ nsamples, color=(linecolor.r, linecolor.g, linecolor.b))
 
         max_val, max_i = findmax(abs.(transformeddata_i))
         maxfreqs[i] = freqs[max_i]
@@ -115,18 +139,17 @@ function plotfftsweep(datamatrix::Matrix{<:Real}, sweepvalues::Array{<:Real}, ou
 
     end
 
-    println(maxfreqs)
-    println(avgrevtimes)
-
     legendlabels = (val -> "$val").(sweepvalues)
     plt.legend(legendlabels, title="Interaction Strength", loc="upper right")
     
     if !isempty(outputplotdir)
-        filesavepath = joinpath(outputplotdir, "FFT_plot.png")
+        filesavepath = joinpath(outputplotdir, "FFT_plot.pdf")
         plt.savefig(filesavepath, bbox_inches = "tight", pad_inches=0.1)
     end
     
-    plt.show()
+    if show
+        plt.show()
+    end
 
     plt.clf()
 
@@ -137,11 +160,13 @@ function plotfftsweep(datamatrix::Matrix{<:Real}, sweepvalues::Array{<:Real}, ou
     plt.ylabel(raw"Average Reversal Time $\langle T \rangle$")
 
     if !isempty(outputplotdir)
-        filesavepath = joinpath(outputplotdir, "FFT_Reversal_Time_plot.png")
+        filesavepath = joinpath(outputplotdir, "FFT_Reversal_Time_plot.pdf")
         plt.savefig(filesavepath, bbox_inches = "tight", pad_inches=0.1)
     end
 
-    plt.show()
+    if show
+        plt.show()
+    end
     plt.clf()
 
 
@@ -165,8 +190,8 @@ function plotfftsweep(datamatrix::Matrix{<:Real}, sweepvalues::Array{<:Real}, ou
     # Initial parameter guess: [a, b, c]
     p0 = [0.3, 0.0]
 
-    # fit only data after ~I=20 since that is when we see the clusters form visually
-    min_sweep = 10
+    # fit only data after ~I=10 since that is when we see the clusters form visually
+    min_sweep = 2.5
     fit = curve_fit(model, xdata[sweepvalues .>= min_sweep], ydata[sweepvalues .>= min_sweep], p0)
     p_est = fit.param
     println("Estimated parameters: ", p_est)
@@ -176,11 +201,6 @@ function plotfftsweep(datamatrix::Matrix{<:Real}, sweepvalues::Array{<:Real}, ou
     bestfit_logy = model(bestfit_logx, p_est)
     bestfit_y = exp10.(bestfit_logy)
 
-    println(bestfit_logx)
-    println(bestfit_logy)
-    println(bestfit_x)
-    println(bestfit_y)
-
 
 
     plt.grid(true, "both", zorder=0)
@@ -188,6 +208,8 @@ function plotfftsweep(datamatrix::Matrix{<:Real}, sweepvalues::Array{<:Real}, ou
     plt.plot(sweepvalues, avgrevtimes, "o", markerfacecolor="none", markeredgecolor="seagreen", label="Data")
     plt.plot(bestfit_x, bestfit_y, "--", label="Best Fit", color="black")
     
+    plt.text("m = $(p[1])")
+
     plt.xscale("log")
     plt.yscale("log")
 
@@ -196,11 +218,13 @@ function plotfftsweep(datamatrix::Matrix{<:Real}, sweepvalues::Array{<:Real}, ou
 
     
     if !isempty(outputplotdir)
-        filesavepath = joinpath(outputplotdir, "FFT_Reversal_Time_loglog_plot.png")
+        filesavepath = joinpath(outputplotdir, "FFT_Reversal_Time_loglog_plot.pdf")
         plt.savefig(filesavepath, bbox_inches = "tight", pad_inches=0.1)
     end
 
-    plt.show()
+    if show
+        plt.show()
+    end
 
 
 
