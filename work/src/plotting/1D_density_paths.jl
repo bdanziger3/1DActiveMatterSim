@@ -136,7 +136,7 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
     
     unwrappedpos = unwrappositions(positions, simparams)
 
-    pathalpha =  .01
+    pathalpha =  .1
 
     # clear plot
     plt.clf()
@@ -146,7 +146,7 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
         maxscrens = round(maximum(unwrappedpos[:,p]) / simparams.boxwidth)
         minscrens = round(minimum(unwrappedpos[:,p]) / simparams.boxwidth)
         for s in collect(minscrens:maxscrens)
-            plt.plot(unwrappedpos[minindex:maxindex ,p] .- (s .* simparams.boxwidth), savetimes[minindex:maxindex], c=PARTICLE_PATH_COLOR, alpha=pathalpha, linewidth=.1)
+            plt.plot(unwrappedpos[minindex:maxindex ,p] .- (s .* simparams.boxwidth), savetimes[minindex:maxindex], c=PARTICLE_PATH_COLOR, alpha=pathalpha, linewidth=1)
         end
     end
 
@@ -158,7 +158,6 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
             maxscrens = round(maximum(unwrappedpos[:,p_i]) / simparams.boxwidth)
             minscrens = round(minimum(unwrappedpos[:,p_i]) / simparams.boxwidth)
             for s in collect(minscrens:maxscrens)
-                println("$(minimum(unwrappedpos[minindex:maxindex ,p_i] .+ (s * simparams.boxwidth))), $(maximum(unwrappedpos[minindex:maxindex ,p_i] .+ (s * simparams.boxwidth)))")
                 plt.plot(unwrappedpos[minindex:maxindex ,p_i] .- (s * simparams.boxwidth), savetimes[minindex:maxindex], c=highlightcolors[Int64(mod(p_i, numhighlightpaths)) + 1], alpha=1.0, linewidth=1)
             end
         end
@@ -174,7 +173,7 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
     if saveplot
         # get dir path to save plot
         datadirname = getanalysisdir(PARTICLE_PATH_DIRNAME, simparams)
-        outputfilename = joinpath(datadirname, "$(FILE_NAME_PREFIX)_thin.pdf")
+        outputfilename = joinpath(datadirname, "$(FILE_NAME_PREFIX).pdf")
         outputfilename = checkfilename(outputfilename)
         println("Saving figure...")
         plt.savefig(outputfilename, bbox_inches = "tight", pad_inches=0.1)
@@ -185,12 +184,4 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
     end
 end
 
-# file = fixpath("work/data/sweeps/alignsimple/boxwidthsweep/d1000/N10000-B10.0-alignsimple-100.0_t10.txt")
-# plot_1d_path_lines(file, true, false)
-file = fixpath("work/data/sweeps/alignsimple/interactionsweep/N1000-sweep-t1000/extended/N1000-B100.0-alignsimple-500_t1000.txt")
-plot_1d_path_lines(file, true, false)
-# file = fixpath("work/data/sweeps/alignsimple/interactionsweep/N1000-sweep-t1000/extended/N1000-B100.0-alignsimple-2_t1000.txt")
-# plot_1d_path_lines(file, true, false, 98000)
-# file = fixpath("work/data/sweeps/turnaway/boxwidthsweep/small_int/d100/N200-B2.0-turnaway-0.1.txt")
-# plot_1d_path_lines(file, true, false)
 
