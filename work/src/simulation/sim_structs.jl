@@ -301,10 +301,7 @@ function unwrappositions(positions::Matrix{Float64}, simparams::SimulationParame
 
     unwrappedpositions = positions .+ (simparams.boxwidth * screencounts)
 
-    minscreencounts = minimum(screencounts)
-    maxscreencounts = maximum(screencounts)
-
-    return unwrappedpositions, [minscreencounts, maxscreencounts]
+    return unwrappedpositions
 end
 
 function unwrappositions(simdata::SimulationData)::Matrix{Float64}
