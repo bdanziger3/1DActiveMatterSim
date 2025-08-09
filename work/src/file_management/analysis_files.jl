@@ -26,6 +26,8 @@ function getanalysisdir(correlationfunction::String, simparams::SimulationParame
         interactionstr = "Align Simple"
     elseif simparams.interaction == antialignsimple
         interactionstr = "Antialign Simple"
+    elseif simparams.interaction == turnaway
+        interactionstr = "Turn Away"
     end
    
     interactiondir::String = joinpath(correlationfnctdir, interactionstr)
