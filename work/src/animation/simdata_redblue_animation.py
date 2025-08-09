@@ -34,7 +34,7 @@ def print_save_progress(current_frame: int, total_frames: int):
     if (total_frames - current_frame) / total_frames < .01 or (total_frames - current_frame) <= 2: 
         print(f"\033[KSaving File...", end="\r")
 
-def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 30, y_offset=False, save_filepath=None, debug_mode=None, delete_gif=False, file_suffix=None, delete_uncompressed=False):
+def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 30, y_offset=False, save_filepath=None, debug_mode=None, file_suffix=None, delete_uncompressed=False):
     # prepare simfile if needed
     prepared_file_path = prepare_simfile(file_str)
     
