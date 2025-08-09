@@ -280,26 +280,34 @@ function df2simdata(df::DataFrame, simparams::SimulationParameters=SimulationPar
 end
 
 
-function unwrappositions(simdata::SimulationData)::Matrix{Float64}
+function unwrappositions(positions::Matrix{Float64}, simparams::SimulationParameters)
     """
     Takes the usual position data which is wrapped around the box boundaries,
     and converts it to unwrapped positions by determining if jumps between saves are longer than would be possible,
     then a jump to the next 'screen' happens.
     """
     # check that we can be sure when a jump happens
-    maxdx = simdata.simparams.v0 * simdata.simparams.snapshot_dt
-    @assert maxdx < simdata.simparams.boxwidth / 2 "maximum dx is larger than half the width of the box, so it is impossible to tell when jumps happen."
+    maxdx = simparams.v0 * simparams.snapshot_dt
+    @assert maxdx < simparams.boxwidth / 2 "maximum dx is larger than half the width of the box, so it is impossible to tell when jumps happen."
 
-    jumpthresh::Real = simdata.simparams.boxwidth / 2
-    nsaves::Int = getnsaves(simdata.simparams)
+    jumpthresh::Real = simparams.boxwidth / 2
+    nsaves::Int = getnsaves(simparams)
 
-    local screencounts = zeros(nsaves, simdata.simparams.numparticles)
+    local screencounts = zeros(nsaves, simparams.numparticles)
     @showprogress 1 "Unwrapping positions..." for i in 2:nsaves
-        dxs = simdata.positions[i, :] .- simdata.positions[i-1, :]
+        dxs = positions[i, :] .- positions[i-1, :]
         screencounts[i, :] .= screencounts[i-1, :] .+ (dx -> -sign(dx) * (abs(dx) > jumpthresh)).(dxs)
     end
 
-    unwrappedpositions = simdata.positions .+ (simdata.simparams.boxwidth * screencounts)
+    unwrappedpositions = positions .+ (simparams.boxwidth * screencounts)
 
-    return unwrappedpositions
+    minscreencounts = minimum(screencounts)
+    maxscreencounts = maximum(screencounts)
+
+    return unwrappedpositions, [minscreencounts, maxscreencounts]
+end
+
+function unwrappositions(simdata::SimulationData)::Matrix{Float64}
+    unwrappedpos, screencountrange = unwrappositions(simdata.positions, simdata.simparams)
+    return unwrappedpos
 end
