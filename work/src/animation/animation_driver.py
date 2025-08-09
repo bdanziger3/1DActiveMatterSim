@@ -51,6 +51,9 @@ t1000_dir = fix_path("work/data/sweeps/turnaway/interactionsweep/N1000-B100")
 # file_turnaway_1 = fix_path("work/data/sweeps/turnaway/interactionsweep/smaller/N1000-B100.0-turnaway-1_DES.txt")
 # make_mp4s_of_dir(t1000_dir, only_prepared_files=True, fps=10, file_suffix="_1D", y_offset=False)
 
+file1 = fix_path("work/data/8-8/N10-B2.0-alignsimple-300-T100.txt")
+file2 = fix_path("work/data/8-8/N10-B2.0-alignsimple-300-T100_0.txt")
+file3 = fix_path("work/data/sweeps/alignsimple/boxwidthsweep/d1000/N10000-B10.0-alignsimple-100.0_t10.txt")
 
-
-sim_animate(turn_100_file, True, False, 30, True)
+sim_animate(file3, False, True, 30, y_offset=False, delete_gif=False, delete_uncompressed=True)
+# sim_animate(file2, False, True, 30, False, save_filepath="work/data/8-8/N10-B2.0-alignsimple-300-T100_0_1D.mp4", delete_gif=True)

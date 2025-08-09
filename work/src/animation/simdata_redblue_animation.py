@@ -18,7 +18,7 @@ SPIN_DOWN_COLOR = "blue"
 FOLLOWING_COLOR = "darkorchid"
 ALPHA = 0.3
 PLOT_YLIM = 0.2
-PLOT_DOT_SIZE = 100
+PLOT_DOT_SIZE = 10
 
 DEBUG_MODE_SHORT_NFRAMES = 5
 
@@ -34,7 +34,7 @@ def print_save_progress(current_frame: int, total_frames: int):
     if (total_frames - current_frame) / total_frames < .01 or (total_frames - current_frame) <= 2: 
         print(f"\033[KSaving File...", end="\r")
 
-def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 30, y_offset=False, save_filepath=None, debug_mode=None, delete_gif=False, file_suffix=None):
+def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 30, y_offset=False, save_filepath=None, debug_mode=None, delete_gif=False, file_suffix=None, delete_uncompressed=False):
     # prepare simfile if needed
     prepared_file_path = prepare_simfile(file_str)
     
@@ -58,7 +58,7 @@ def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 3
 
     times = sim_data._sim_params.get_save_times()
 
-    # initialize xdata and ydata to al zeros
+    # initialize xdata and ydata to all zeros
     offsets = np.zeros([sim_data._sim_params._num_particles, 2])
 
     init_xdata = offsets[:,0]
@@ -72,8 +72,10 @@ def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 3
         # marker_size = int(np.round((2000 / 3) * PLOT_DOT_SIZE / sim_data._sim_params._num_particles))
         marker_size = max(10, np.pow((2 * PLOT_YLIM) / sim_data._sim_params._num_particles, 2))
     else:
-        marker_size = PLOT_DOT_SIZE
-
+        plot_height_fraction = .1
+        init_ydata = plot_height_fraction * 2 * PLOT_YLIM * ((np.arange(0, sim_data._sim_params._num_particles) / sim_data._sim_params._num_particles)  - (1/2))
+        offsets[:,1] = init_ydata
+        marker_size = max(10, np.pow((2 * plot_height_fraction * PLOT_YLIM) / sim_data._sim_params._num_particles, 2))
 
     up_rgba = mplc.colorConverter.to_rgba(SPIN_UP_COLOR, alpha=ALPHA)
     down_rgbpa = mplc.colorConverter.to_rgba(SPIN_DOWN_COLOR, alpha=ALPHA)
@@ -111,25 +113,17 @@ def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 3
         if save_filepath is None:
             in_file_prefix = file_str[:-4]
             save_filepath = f"{in_file_prefix}.mp4"
-        if save_filepath.endswith(".mp4"):
-            save_filepath_pre = save_filepath[:-4]
-            save_filepath_gif = f"{save_filepath_pre}.gif"
-        elif save_filepath.endswith(".gif"):
-            save_filepath_gif = save_filepath
         
-        ani.save(save_filepath_gif, fps=anim_fps, progress_callback=print_save_progress)
-
-        if save_filepath.endswith(".mp4"):
-            clip = moviepy.VideoFileClip(save_filepath_gif)
-            clip.write_videofile(f"{save_filepath[:-4]}{file_suffix}.mp4")
-
-            if delete_gif:
-                os.remove(save_filepath_gif)
-
+        ani.save(save_filepath, fps=anim_fps, progress_callback=print_save_progress)
 
 
     if show:
         plt.show()
+
+    # delete temporary uncompressed file
+    if delete_uncompressed:
+        if prepared_file_path != file_str:
+            os.remove(prepared_file_path)
 
 
 def sim_animate_follow(file_str:str, particle_to_follow:int, show:bool = True, save:bool = False, fps:float = 30, y_offset=False, save_filepath=None, debug_mode=None, delete_gif=False):    
