@@ -28,19 +28,12 @@ Produces a line plot of the mean squared displacement as a function of the time 
 Set `savetxt` to save a .txt file with the orientation self-correlation function results
 Set `show` to display the plot as well as saving it.
 """
-function msd_plot(filename::String, settletime::Float64=-1.0, serialized::Bool=false, saveplot::Bool=true, savetxt::Bool=true, show::Bool=false)
+function msd_plot(filename::String, settletime::Float64=-1.0, saveplot::Bool=true, savetxt::Bool=true, show::Bool=false)
     
+    # get the position data from the file
+    positions, simparams = loadsimpositions(filename)
 
-    
-    # get the `SimulationData` from the file
-    local sd::SimulationData
-    if serialized
-        sd = loadcompressedfile(filename)
-    else
-        sd = loadsim(filename, rowwisetxt)
-    end
-
-    msdmat::Matrix{Float64} = meansqdisp(sd, settletime)
+    msdmat::Matrix{Float64} = meansqdisp(positions, simparams, settletime)
 
     # save as a datafile if requested
     if savetxt
@@ -95,7 +88,73 @@ Plots the data previously saved to a txt file.
 
 Can specify `maxindex` to only plot that many data points along the horizontal axis.
 """
-function msd_plot_txt(txtfilename::String, maxindex::Int64=1000, saveplot::Bool=true, show::Bool=false)
+function msd_plot_txt(txtfilename::String, maxindex::Int64=1000, logx::Bool=false, logy::Bool=false, saveplot::Bool=true, show::Bool=false)
+    
+    # get the plot data from the file
+    file = open(txtfilename, "r")
+
+    line = readline(file)
+    # Check that data file header is correct
+    @assert contains(lowercase(line), "mean squared displacement data") "MSD data file does not have correct first line. File may be corrupted."
+    
+    line = readline(file)
+    @assert contains(lowercase(line), "simulation parameters") "MSD data file does not have correct first line. File may be corrupted."
+    
+    # read simparams
+    # read next line to get number of position data points
+    simparaminfo_str = readline(file)
+    simparams = SimulationParameters(simparaminfo_str)
+    
+    line = readline(file)
+    @assert contains(lowercase(line), "plot data") "MSD data file does not have correct first line. File may be corrupted."
+    
+    # read x data (dt)
+    dataline = readline(file)
+    dtdata::Array{Float64} = parse.(Float64, split(dataline, ","))
+    
+    # read y data (MSD)
+    dataline = readline(file)
+    msddata::Array{Float64} = parse.(Float64, split(dataline, ","))
+
+    local interactionstr::String = ""
+    if simparams.interaction == nointeraction
+        interactionstr = "no-interaction  "
+    else
+        interactionstr = "$(simparams.interaction) I=$(Int64(round(simparams.interactionfliprate)))  "
+    end
+
+
+    ### Plotting
+
+    # clear plot
+    plt.clf()
+    
+    plt.plot(dtdata[1:maxindex], msddata[1:maxindex])
+    axes = plt.gca()
+    axes.loglog()
+    plt.xlabel("$(raw"Log of Time Interval $\log(dt)$")")
+    plt.ylabel("$(raw"Slope of the Log of the Mean Squared Displacement \n $\frac{d\log(\langle\Delta^2\rangle)}{d\log(dt)}$")")
+    plt.title("Slope of Log-Log Plot of Mean Squared Displacement\nof Active Particle Simulation\n N=$(simparams.numparticles)  Boxwidth=$(simparams.boxwidth)  t=$(simparams.totaltime)  $(interactionstr)")
+    
+
+    if saveplot
+        # get dir path to save plot
+        datadirname = dirname(txtfilename)
+        plt.savefig(joinpath(datadirname, "$(FILE_NAME_PREFIX)_loglog.pdf"), bbox_inches = "tight", pad_inches=0.1)
+    end
+    
+    if show
+        plt.show()
+    end
+end
+
+
+"""
+Plots the data previously saved to a txt file.
+
+Can specify `maxindex` to only plot that many data points along the horizontal axis.
+"""
+function msd_plot_txt_logslope(txtfilename::String, maxindex::Int64=1000, saveplot::Bool=true, show::Bool=false)
     
     # get the plot data from the file
     file = open(txtfilename, "r")
@@ -124,7 +183,6 @@ function msd_plot_txt(txtfilename::String, maxindex::Int64=1000, saveplot::Bool=
     msddata::Array{Float64} = parse.(Float64, split(dataline, ","))
 
 
-
     local interactionstr::String = ""
     if simparams.interaction == nointeraction
         interactionstr = "no-interaction  "
@@ -144,10 +202,6 @@ function msd_plot_txt(txtfilename::String, maxindex::Int64=1000, saveplot::Bool=
     plt.clf()
     
     plt.grid(true, zorder=0)
-    # plt.plot(dtdata[1:maxindex], msddata[1:maxindex])
-    # plt.plot(log10.(dtdata[1:maxindex]), log10.(msddata[1:maxindex]))
-    # plt.xlabel("$(raw"Time Interval $dt$")")
-    # plt.ylabel("Mean Squared Displacement")
     plt.plot(log10.(dtdata[1:maxindex]), derivlog)
     plt.xlabel("$(raw"Log of Time Interval $\log(dt)$")")
     plt.ylabel("$(raw"Slope of the Log of the Mean Squared Displacement \n $\frac{d\log(\langle\Delta^2\rangle)}{d\log(dt)}$")")
@@ -165,6 +219,9 @@ function msd_plot_txt(txtfilename::String, maxindex::Int64=1000, saveplot::Bool=
     end
 end
 
+fl = fixpath("work/data/9-8/N10000-B100.0-nointeraction-0-T200.txt")
+msd_plot(fl)
+
 
 """
 Produces a line plot of the mean squared displacement as a function of the time interval `dt`
@@ -173,7 +230,7 @@ of all the files in a given directory, and plots the lines on the same axes.
 Set `savetxt` to save a .txt file with the orientation self-correlation function results
 Set `show` to display the plot as well as saving it.
 """
-function msd_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, settletime::Float64=-1.0, serialized::Bool=false, saveplot::Bool=true, savetxt::Bool=true, show::Bool=false)
+function msd_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, settletime::Float64=-1.0, saveplot::Bool=true, savetxt::Bool=true, show::Bool=false)
         
     # initialize data matrix
     local full_msdmat::Matrix{Float64} = zeros(0,0)
@@ -194,19 +251,13 @@ function msd_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, 
         inputfilename = joinpath(dirname, filename)
 
         # add simparams to array
-        initialstate = loadsim_nlines(inputfilename, 1, 1, rowwisetxt, true)
-        push!(sp_array, initialstate.simparams)
+
+        # get the position data from the file
+        positions, simparams = loadsimpositions(filename)
+        push!(sp_array, simparams)
 
         # run correlation function and add to plot
-        # get the `SimulationData` from the file
-        local sd::SimulationData
-        if serialized
-            sd = loadcompressedfile(inputfilename)
-        else
-            sd = loadsim(inputfilename, rowwisetxt)
-        end
-
-        msdmat_i::Matrix{Float64} = meansqdisp(sd, settletime)
+        msdmat_i::Matrix{Float64} = meansqdisp(positions, simparams, settletime)
 
 
         # if `full_msdmat` is empty, add x-axis data and first line of y-axis data
@@ -300,10 +351,9 @@ datafile_nointeraction_2_txt = fixpath("work/analysis/Mean Squared Displacement/
 
 
 
-serialized::Bool = true
-# msd_plot(datafile_100, -1.0, serialized, true, true, true)
-# msd_plot(datafile_nointeraction_2, -1.0, serialized, true, true, true)
+# msd_plot(datafile_100, -1.0, true, true, true)
+# msd_plot(datafile_nointeraction_2, -1.0, true, true, true)
     
 msd_plot_txt(datafile_nointeraction_2_txt, 4999, false, true)
 # testdir = fixpath("/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/sweeps/densitysweep/collapsed")
-# oc_plot_dir(testdir, "Density Sweep 10-7", densitysweep, -1.0, serialized, true, true, false)
+# oc_plot_dir(testdir, "Density Sweep 10-7", densitysweep, -1.0, true, true, false)

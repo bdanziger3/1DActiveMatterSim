@@ -16,19 +16,19 @@ Returns a distribution that gives the MSD (in units of length^2) as a function o
 
 Calculated from the (unrwrapped) positions
 """
-function meansqdisp(simdata::SimulationData, settletime::Float64=-1.0)::Matrix{<:Real}
+function meansqdisp(positions::Matrix{<:Float64}, simparams::SimulationParameters, settletime::Float64=-1.0)::Matrix{<:Real}
     # returns the Mean Squared Displacement data from a SimulationData object
 
     # if no `settletime` specified, use half the `totaltime`
     if settletime < 0
-        settletime = simdata.simparams.totaltime / 2
+        settletime = simparams.totaltime / 2
     end
 
-    nsaves = getnsaves(simdata.simparams)
-    positions = unwrappositions(simdata)
+    nsaves = getnsaves(simparams)
+    positions = unwrappositions(positions, simparams)
     
-    mintimestep::Float64 = simdata.simparams.snapshot_dt
-    maxtimestep::Float64 = simdata.simparams.totaltime - settletime
+    mintimestep::Float64 = simparams.snapshot_dt
+    maxtimestep::Float64 = simparams.totaltime - settletime
     ndts::Int64 = Int64(floor(maxtimestep / mintimestep))
     
     # calculate snapshot index of the settletime
@@ -39,7 +39,7 @@ function meansqdisp(simdata::SimulationData, settletime::Float64=-1.0)::Matrix{<
     # first column of `msdmat` is 0s
 
     # evaluate for each interval dt, incremented by number of `mintimestep`s 
-    for ndt in 1:ndts
+    @showprogress 1 "Calculating MSD..." for ndt in 1:ndts
         
         mint0_i = settletime_i
         maxt0_i = nsaves - ndt
@@ -60,6 +60,21 @@ function meansqdisp(simdata::SimulationData, settletime::Float64=-1.0)::Matrix{<
     end
 
     return msdmat
+end
+
+
+"""
+Mean Squared Displacement
+
+Calculates the squared distance a particle travels over a timestep dt
+averaged over all particles and over all intervals of length dt.
+
+Returns a distribution that gives the MSD (in units of length^2) as a function of dt (in units of time)
+
+Calculated from the (unrwrapped) positions
+"""
+function meansqdisp(simdata::SimulationData, settletime::Float64=-1.0)::Matrix{<:Real}
+    return meansqdisp(simdata.positions, simdata.simparams, settletime)
 end
 
 
