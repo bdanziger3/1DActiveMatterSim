@@ -39,7 +39,7 @@ PO_LINE_DEFAULT_COLOR = "darkviolet"
 POLAR_ORDER_DIRNAME = "Polar Order"
 PO_FILE_NAME_PREFIX = "polar_order"
 
-PO_PLOT_YLABEL = "Mean Spin \n$(raw"$\frac{1}{N}\sum^N_i \left| S_i \right| $")"
+PO_PLOT_YLABEL = "Polar Order \n$(raw"$\frac{1}{N}\sum^N_i \left| S_i \right| $")"
 PO_PLOT_TITLE_TOPLINE = "Polar Order of Active Particle Simulation"
 
 
@@ -464,6 +464,109 @@ function ms_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
         outputfilename = checkfilename(outputfilename)
         plt.savefig(outputfilename, bbox_inches = "tight", pad_inches=0.1)
     end
+    
+    if show
+        plt.show()
+    end
+end
+
+
+"""
+Plots the data previously saved to a `.txt` file.
+
+Can specify `minindex` and `maxindex` to only plot that many data points along the horizontal axis.
+"""
+function po_saveddata_plot(txtfilename::String, minindex::Int64=1, maxindex::Int64=0, saveplot::Bool=false, show::Bool=true)
+    
+
+    # get the plot data from the file
+    xydatamat, sweeptype, simparamsout, legendvalues = ms_saveddata_load(txtfilename)
+
+    # handle default `maxindex` behavior
+    if maxindex == 0
+        maxindex = size(xydatamat)[2]
+    end
+
+    ### Plotting
+    # prepare plot
+    plt.clf()
+    plt.grid(true, zorder=0)
+    ###
+
+    local paramsstr
+    local xaxistitle
+    if sweeptype != nosweep
+        filenameprefix = "polar_order_plot_$(sweeptype)"
+        if sweeptype == densitysweep
+            xaxistitle = "Number of Particles"
+            sweepcm = MS_LINE_DENSITY_COLORMAP
+        elseif sweeptype == boxwidthsweep
+            xaxistitle = "Box Width"
+            sweepcm = MS_LINE_BOXWIDTH_COLORMAP
+        elseif sweeptype == interactionstrengthsweep
+            xaxistitle = "Interaction Fliprate"
+            sweepcm = MS_LINE_INTERACTION_COLORMAP
+        end
+                
+        # get params string for plot
+        paramsstr = simparamsout
+        nshots = length(legendvalues)
+
+        avgpo::Vector{Float64} = zeros(length(legendvalues))
+        for i in 1:nshots
+            # calculate average PO for the given range
+            avgpo[i] = sum(abs.(xydatamat[i+1, minindex:maxindex]))[1] / (maxindex - minindex + 1)
+        end
+
+        # plot results
+        linecolor = get(sweepcm, 1.0)
+        plt.plot(legendvalues, avgpo, "o")
+        axes = plt.gca()
+        axes.loglog()
+
+    else
+        filenameprefix = "polar_order_plot"
+
+        # prepare strings for labels used in plot
+        local interactionstr::String = ""
+        if simparamsout.interaction == nointeraction
+            interactionstr = "no-interaction  "
+        else
+            interactionstr = "$(simparamsout.interaction) I=$(Int64(round(simparamsout.interactionfliprate)))  "
+        end
+
+        absxymat = abs.(xydatamat[2, minindex:maxindex])
+        po_sum = sum(absxymat)
+        avgpo = po_sum / (maxindex - minindex + 1)
+        println(avgpo)
+
+        
+        
+    end
+
+
+    plt.xlabel(MS_PLOT_XLABEL)
+    plt.ylabel(PO_PLOT_YLABEL)
+    plt.title("$(PO_PLOT_TITLE_TOPLINE)\n$(paramsstr)")        
+    
+    # if saveplot
+    #     # get dir path to save plot
+    #     datadirname = dirname(txtfilename)
+
+    #     ndatapoints = size(xydatamat)[2]
+    #     local rangestr::String = ""
+    #     if minindex != 0 && maxindex != ndatapoints
+    #         rangestr = "_indexrange_$minindex-$maxindex"
+    #     elseif minindex == 1 && maxindex != ndatapoints
+    #         rangestr = "_maxindex-$maxindex"
+    #     elseif minindex != 1 && maxindex == ndatapoints
+    #         rangestr = "_minindex-$minindex"
+    #     end
+
+    #     outputfilename = joinpath(datadirname, "$(filenameprefix)_from_txt$rangestr.pdf")
+    #     outputfilename = checkfilename(outputfilename)
+    #     plt.savefig(outputfilename, bbox_inches = "tight", pad_inches=0.1)
+    # end
     
     if show
         plt.show()

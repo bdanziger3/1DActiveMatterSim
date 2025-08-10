@@ -37,7 +37,7 @@ function msd_plot(filename::String, settletime::Float64=-1.0, saveplot::Bool=tru
 
     # save as a datafile if requested
     if savetxt
-        outputtextfilefullpath = joinpath(getanalysisdir(MSD_DIRNAME, simparams), "$(FILE_NAME_PREFIX)-$(settletime).txt")
+        outputtextfilefullpath = joinpath(getanalysisdir(MSD_DIRNAME, simparams), "$(FILE_NAME_PREFIX)-$(settletime == -1 ? "all" : settletime).txt")
 
         open(outputtextfilefullpath, "w") do io
             println(io, "Mean Squared Displacement Data")
@@ -88,7 +88,7 @@ Plots the data previously saved to a txt file.
 
 Can specify `maxindex` to only plot that many data points along the horizontal axis.
 """
-function msd_plot_txt(txtfilename::String, maxindex::Int64=1000, logx::Bool=false, logy::Bool=false, saveplot::Bool=true, show::Bool=false)
+function msd_plot_txt(txtfilename::String, maxindex::Int64=1000, saveplot::Bool=true, show::Bool=false)
     
     # get the plot data from the file
     file = open(txtfilename, "r")
@@ -126,15 +126,32 @@ function msd_plot_txt(txtfilename::String, maxindex::Int64=1000, logx::Bool=fals
 
     ### Plotting
 
-    # clear plot
+    # plot linear data
     plt.clf()
+    plt.plot(dtdata[1:maxindex], msddata[1:maxindex])
+    plt.xlabel("$(raw"Time Interval $\log(dt)$")")
+    plt.ylabel("$(raw"Mean Squared Displacement \n $\frac{d\log(\langle\Delta^2\rangle)}{d\log(dt)}$")")
+    plt.title("Plot of Mean Squared Displacement\nof Active Particle Simulation\n N=$(simparams.numparticles)  Boxwidth=$(simparams.boxwidth)  t=$(simparams.totaltime)  $(interactionstr)")
     
+
+    if saveplot
+        # get dir path to save plot
+        datadirname = dirname(txtfilename)
+        plt.savefig(joinpath(datadirname, "$(FILE_NAME_PREFIX).pdf"), bbox_inches = "tight", pad_inches=0.1)
+    end
+
+    if show
+        plt.show()
+    end
+    
+    # plot on loglog axes data
+    plt.clf()
     plt.plot(dtdata[1:maxindex], msddata[1:maxindex])
     axes = plt.gca()
     axes.loglog()
     plt.xlabel("$(raw"Log of Time Interval $\log(dt)$")")
-    plt.ylabel("$(raw"Slope of the Log of the Mean Squared Displacement \n $\frac{d\log(\langle\Delta^2\rangle)}{d\log(dt)}$")")
-    plt.title("Slope of Log-Log Plot of Mean Squared Displacement\nof Active Particle Simulation\n N=$(simparams.numparticles)  Boxwidth=$(simparams.boxwidth)  t=$(simparams.totaltime)  $(interactionstr)")
+    plt.ylabel("Log of the Mean Squared Displacement\n$(raw"$\frac{d\log(\langle\Delta^2\rangle)}{d\log(dt)}$")")
+    plt.title("Log-Log Plot of Mean Squared Displacement\nof Active Particle Simulation\n N=$(simparams.numparticles)  Boxwidth=$(simparams.boxwidth)  t=$(simparams.totaltime)  $(interactionstr)")
     
 
     if saveplot
@@ -202,8 +219,8 @@ function msd_plot_txt_logslope(txtfilename::String, maxindex::Int64=1000, savepl
     plt.clf()
     
     plt.grid(true, zorder=0)
-    plt.plot(log10.(dtdata[1:maxindex]), derivlog)
-    plt.xlabel("$(raw"Log of Time Interval $\log(dt)$")")
+    plt.plot(dtdata[1:maxindex], derivlog)
+    plt.xlabel("$(raw"Interval $\log(dt)$")")
     plt.ylabel("$(raw"Slope of the Log of the Mean Squared Displacement \n $\frac{d\log(\langle\Delta^2\rangle)}{d\log(dt)}$")")
     plt.title("Slope of Log-Log Plot of Mean Squared Displacement\nof Active Particle Simulation\n N=$(simparams.numparticles)  Boxwidth=$(simparams.boxwidth)  t=$(simparams.totaltime)  $(interactionstr)")
     
@@ -219,8 +236,6 @@ function msd_plot_txt_logslope(txtfilename::String, maxindex::Int64=1000, savepl
     end
 end
 
-fl = fixpath("work/data/N10000-B100.0-nointeraction-0-T200.txt")
-msd_plot(fl)
 
 
 """
