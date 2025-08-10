@@ -37,12 +37,12 @@ function msd_plot(filename::String, settletime::Float64=-1.0, saveplot::Bool=tru
 
     # save as a datafile if requested
     if savetxt
-        outputtextfilefullpath = joinpath(getanalysisdir(MSD_DIRNAME, sd.simparams), "$(FILE_NAME_PREFIX)-$(settletime).txt")
+        outputtextfilefullpath = joinpath(getanalysisdir(MSD_DIRNAME, simparams), "$(FILE_NAME_PREFIX)-$(settletime).txt")
 
         open(outputtextfilefullpath, "w") do io
             println(io, "Mean Squared Displacement Data")
             println(io, "Simulation Parameters")
-            println(io, csv_serialize(sd.simparams))
+            println(io, csv_serialize(simparams))
             println(io, "Plot Data")
             writedlm(io, msdmat, ",")
         end
@@ -50,10 +50,10 @@ function msd_plot(filename::String, settletime::Float64=-1.0, saveplot::Bool=tru
 
 
     local interactionstr::String = ""
-    if sd.simparams.interaction == nointeraction
+    if simparams.interaction == nointeraction
         interactionstr = "no-interaction  "
     else
-        interactionstr = "$(sd.simparams.interaction) I=$(Int64(round(sd.simparams.interactionfliprate)))  "
+        interactionstr = "$(simparams.interaction) I=$(Int64(round(simparams.interactionfliprate)))  "
     end
 
 
@@ -69,12 +69,12 @@ function msd_plot(filename::String, settletime::Float64=-1.0, saveplot::Bool=tru
     plt.plot(msdmat[1,:], msdmat[2,:])
     plt.xlabel("$(raw"Time Interval $dt$")")
     plt.ylabel("Mean Squared Displacement")
-    plt.title("Mean Squared Displacement of Active Particle Simulation\n N=$(sd.simparams.numparticles)  Boxwidth=$(sd.simparams.boxwidth)  t=$(Int64(round(sd.simparams.totaltime)))  $(interactionstr)")
+    plt.title("Mean Squared Displacement of Active Particle Simulation\n N=$(simparams.numparticles)  Boxwidth=$(simparams.boxwidth)  t=$(Int64(round(simparams.totaltime)))  $(interactionstr)")
     
 
     if saveplot
         # get dir path to save plot
-        datadirname = getanalysisdir(MSD_DIRNAME, sd.simparams)
+        datadirname = getanalysisdir(MSD_DIRNAME, simparams)
         plt.savefig(joinpath(datadirname, "$(FILE_NAME_PREFIX).pdf"), bbox_inches = "tight", pad_inches=0.1)
     end
     
@@ -219,7 +219,7 @@ function msd_plot_txt_logslope(txtfilename::String, maxindex::Int64=1000, savepl
     end
 end
 
-fl = fixpath("work/data/9-8/N10000-B100.0-nointeraction-0-T200.txt")
+fl = fixpath("work/data/N10000-B100.0-nointeraction-0-T200.txt")
 msd_plot(fl)
 
 
@@ -343,17 +343,17 @@ function msd_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, 
     end
 end
 
-datafile_100 = fixpath("work/data/sweeps/densitysweep/collapsed/N100-B100.0-alignsimple-100.txt")
-datafile_100_txt = fixpath("work/analysis/Mean Squared Displacement/Align Simple/N100-B100-T100-I100/msd--1.0.txt")
-datafile_nointeraction = fixpath("work/data/22-6/N10000-nointeraction-t100-sn0.01.txt")
-datafile_nointeraction_2 = fixpath("work/data/8-7/N1000-B100.0-nointeraction-100-T100.txt")
-datafile_nointeraction_2_txt = fixpath("work/analysis/Mean Squared Displacement/No Interaction/N1000-B100-T100/msd--1.0.txt")
+# datafile_100 = fixpath("work/data/sweeps/densitysweep/collapsed/N100-B100.0-alignsimple-100.txt")
+# datafile_100_txt = fixpath("work/analysis/Mean Squared Displacement/Align Simple/N100-B100-T100-I100/msd--1.0.txt")
+# datafile_nointeraction = fixpath("work/data/22-6/N10000-nointeraction-t100-sn0.01.txt")
+# datafile_nointeraction_2 = fixpath("work/data/8-7/N1000-B100.0-nointeraction-100-T100.txt")
+# datafile_nointeraction_2_txt = fixpath("work/analysis/Mean Squared Displacement/No Interaction/N1000-B100-T100/msd--1.0.txt")
 
 
 
-# msd_plot(datafile_100, -1.0, true, true, true)
-# msd_plot(datafile_nointeraction_2, -1.0, true, true, true)
+# # msd_plot(datafile_100, -1.0, true, true, true)
+# # msd_plot(datafile_nointeraction_2, -1.0, true, true, true)
     
-msd_plot_txt(datafile_nointeraction_2_txt, 4999, false, true)
+# msd_plot_txt(datafile_nointeraction_2_txt, 4999, false, true)
 # testdir = fixpath("/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/sweeps/densitysweep/collapsed")
 # oc_plot_dir(testdir, "Density Sweep 10-7", densitysweep, -1.0, true, true, false)
