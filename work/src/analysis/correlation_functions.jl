@@ -306,4 +306,64 @@ end
 
 
 
+
+"""
+Mean Cluster Width
+
+Calculates the average length of clusters of particles that are aligned
+Measured in units of number of particles
+"""
+function meanclusterlength(positions::Matrix{Float64}, spins::Matrix{Int8}, simparams::SimulationParameters)::Matrix{Float64}
+    # returns the Mean Spin as a function of time throughout one simulation
+    times = getsavetimes(simparams)
+    nsaves = getnsaves(simparams)
+    
+    meanclusterlengthmat::Matrix{Float64} = zeros(2, nsaves)
+    meanclusterlengthmat[1, :] = times
+
+    # for t in 1:nsaves
+    @showprogress 1 "Calculating Mean Cluster Length..." for t in 1:nsaves
+        # sort particles
+        sortedindices = sortperm(positions[t, :])
+        pos_sorted_spins = spins[t, sortedindices]
+
+        runlengths = []
+        currspin = pos_sorted_spins[1]
+        currrunlength = 1
+        for i in 2:simparams.numparticles
+            if currspin == pos_sorted_spins[i]
+                # increment if same spin
+                currrunlength += 1
+            else
+                # add run to array
+                push!(runlengths, currrunlength)
+                currrunlength = 0
+                currspin = pos_sorted_spins[i]
+            end
+        end
+
+        # now add final run
+        if currspin != pos_sorted_spins[1]
+            push!(runlengths, currrunlength)
+        else
+            # if last run has same spin as first run, combine them
+            runlengths[1] += currrunlength
+        end
+
+        meanclusterlengthmat[2, t] = mean(runlengths)
+    end
+
+    return meanclusterlengthmat
+end
+
+"""
+Same function but with `SimulationData` object as an input parameter.
+"""
+function meanclusterlength(simdata::SimulationData)::Matrix{Float64}
+    return meanclusterlength(simdata.positions, simdata.spins, simdata.simparams)
+end
+
+
+
+
     

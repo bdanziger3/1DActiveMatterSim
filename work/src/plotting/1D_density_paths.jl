@@ -27,7 +27,13 @@ D_PLOT_TITLE_TOPLINE = "Particle Density Trajectories"
 
 D_LINE_COLORMAP = ColorSchemes.Blues_8
 
-PARTICLE_PATH_COLOR = "mediumblue"
+PARTICLE_PATH_COLOR = "teal"
+
+LR = "lightcoral"
+LB = "lightskyblue"
+
+
+FONT = "Times New Roman"
 
 
 
@@ -74,7 +80,8 @@ function plot_1d_density_path(filename::String, saveplot::Bool=false, show::Bool
 
     maxdensity = maximum(densitymat)
     
-    for t in 1:size(savetimes)[1]
+    # for t in 1:size(savetimes)[1]
+    @showprogress 1 "plotting densities..." for t in 1:size(savetimes)[1]
         densitycolors = get(D_LINE_COLORMAP, densitymat[t,:] / maxdensity)
         # plt.plot(bincenters, repeat([savetimes[t]], nbins), marker="o", s=densitymat[t,:], c=densitycolors)
         alphaarray = densitymat[t,:] / maxdensity
@@ -109,16 +116,20 @@ end
 Plots the lines of particle positoins.
 
 """
-function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=true, minindex::Int64=1, maxindex::Int64=0, highlight::Array{Int64}=[0])    
+function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=true, mintime::Real=0, maxtime::Real=-1, highlight::Array{Int64}=[0], title::Bool=true)    
     # get the spin data from the file
     positions, simparams = loadsimpositions(filename)
 
     savetimes = getsavetimes(simparams)
 
     # by default max index is the last time index
-    if maxindex == 0
-        maxindex = size(positions)[1]
+    if maxtime < 0
+        maxtime = simparams.totaltime
     end 
+
+    # convert times to indices
+    minindex = Int64(round(mintime / simparams.snapshot_dt)) + 1
+    maxindex = Int64(round(maxtime / simparams.snapshot_dt)) + 1
 
 
     #################
@@ -140,7 +151,9 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
 
     # clear plot
     plt.clf()
-    plt.xlim([-simparams.boxwidth / 2, simparams.boxwidth / 2])
+    # plt.xlim([-simparams.boxwidth / 2, simparams.boxwidth / 2])
+    plt.xlim([-10, 10])
+    plt.ylim([mintime, maxtime])
     
     @showprogress 1 "plotting paths..." for p in 1:simparams.numparticles
         maxscrens = round(maximum(unwrappedpos[:,p]) / simparams.boxwidth)
@@ -162,20 +175,55 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
             end
         end
     end
-        
-    gca().invert_yaxis()
     
-    plt.xlabel("Position")
-    plt.ylabel("Time")
-    plt.title("$(D_PLOT_TITLE_TOPLINE)\n N=$(simparams.numparticles)  Boxwidth=$(simparams.boxwidth)  t=$(Int64(simparams.totaltime))  $(interactionstr)")
+    ax = gca()
+    ax.invert_yaxis()
+    ax.xaxis.set_ticks_position("top")
+    ax.xaxis.set_label_position("top")
+    ax.tick_params(axis="x", which="both", direction="in")
+    
+    plt.xlabel(raw"Position", fontsize=16, fontname=FONT)
+    plt.ylabel(raw"$\longleftarrow$ Time", fontsize=16, fontname=FONT)
 
+    for label in cat(ax.get_xticklabels(), ax.get_yticklabels(), dims=1)
+        label.set_fontname(FONT)  # font family
+    end
+
+    # xticks = Int64.(round.(collect(-simparams.boxwidth / 2:5:simparams.boxwidth / 2)))
+    # xticks = Int64.(round.(collect(minindex / simparams.snapshot_dt:5:maxindex / simparams.snapshot_dt)))
+    # plt.xticks([-50, -25, 0, 25, 50], [0, 25, 50, 75, 100])
+    plt.xticks([-10, -5, 0, 5, 10])
+    plt.yticks([80, 85, 90, 95, 100])
+
+
+
+    if title
+        plt.title("$(D_PLOT_TITLE_TOPLINE)\n N=$(simparams.numparticles)  Boxwidth=$(simparams.boxwidth)  t=$(Int64(simparams.totaltime))  $(interactionstr)")
+    # else
+        
+        # ax.spines["bottom"].set_visible(false)
+        # ax.spines["top"].set_visible(false)
+    end
+
+
+    timestr = ""
+    if mintime != 0 || maxtime != simparams.totaltime
+        timestr = "_times_$(mintime)_to_$(maxtime)"
+    end
 
     if saveplot
         # get dir path to save plot
         datadirname = getanalysisdir(PARTICLE_PATH_DIRNAME, simparams)
-        outputfilename = joinpath(datadirname, "$(FILE_NAME_PREFIX).pdf")
+        outputfilename = joinpath(datadirname, "$(FILE_NAME_PREFIX)$(timestr).pdf")
         outputfilename = checkfilename(outputfilename)
         println("Saving figure...")
+
+        # calculate appropriate plot dimensions
+        # fig = plt.gcf()
+        # figdims = fig.get_size_inches()
+        # println(size)
+
+        # fig.set_size_inches(figdims[1], 3 * figdims[1])
         plt.savefig(outputfilename, bbox_inches = "tight", pad_inches=0.1)
     end
     
@@ -185,3 +233,9 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
 end
 
 
+# for w in [1,2,5,10,20,50,100] 
+# w = 100
+
+# path = fixpath("work/data/sweeps/alignsimple/boxwidthsweep/d100/N$(w)00-B$(w).0-alignsimple-100.txt")
+# plot_1d_path_lines(path, true, true, 80, -1, [0], false)
+# # end

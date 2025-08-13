@@ -96,8 +96,6 @@ function alignOn2(simparams::SimulationParameters, currpositions::Matrix{<:Real}
     end
 
     # now for all particles that can flip, check if they do flip
-    # flips = (x -> randomflips(simparams.dt, simparams.interactionfliprate)).(canflip)
-
     flips_int::Array{Bool} = Array{Bool}(undef, 1, simparams.numparticles)
 
     for p in 1:nparticles
@@ -344,8 +342,6 @@ function alignOn2_quick(simparams::SimulationParameters, currpositions::Matrix{<
     end
 
     # now for all particles that can flip, check if they do flip
-    # flips = (x -> randomflips(simparams.dt, simparams.interactionfliprate)).(canflip)
-
     flips_int::Array{Bool} = Array{Bool}(undef, 1, simparams.numparticles)
     for p in 1:nparticles
         if flips_int[p]
@@ -381,8 +377,6 @@ function calcspinflips(simparams::SimulationParameters, currspins::Matrix{Int8},
         flips_noise[p] = randomflips(simparams.dt, simparams.fliprate)
     end
 
-    # println(flips_noise)
-    # println(flips_noise)
     totalflips = flips_int .|| flips_noise
 
     return totalflips

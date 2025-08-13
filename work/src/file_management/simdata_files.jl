@@ -774,6 +774,13 @@ function collapsesegments(inputfilename::String, outputfilename::String, forcecl
     else
         outputfilenametouse = outputfilename
     end
+    
+    # if same name, make a copy then delete
+    local copytosamename = false
+    if inputfilename == outputfilenametouse
+        outputfilenametouse = findfreefilename(outputfilenametouse[1:end-4], outputfilenametouse[end-4+1:end])
+        copytosamename = true
+    end
 
     # get preliminary info
     simstarts, simsaves, simtimes, _ = getsimsegments(inputfilename)
@@ -815,6 +822,12 @@ function collapsesegments(inputfilename::String, outputfilename::String, forcecl
     end
 
     close(inputfile)
+
+    # now copy to original name if needed
+    if copytosamename
+        rm(inputfilename)
+        mv(outputfilenametouse, inputfilename)
+    end
 
 end
 
