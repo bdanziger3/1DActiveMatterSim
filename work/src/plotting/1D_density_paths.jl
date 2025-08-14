@@ -147,7 +147,7 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
     
     unwrappedpos = unwrappositions(positions, simparams)
 
-    pathalpha =  .1
+    pathalpha =  .05
 
     # clear plot
     plt.clf()
@@ -180,7 +180,7 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
     ax.invert_yaxis()
     ax.xaxis.set_ticks_position("top")
     ax.xaxis.set_label_position("top")
-    ax.tick_params(axis="x", which="both", direction="in")
+    ax.tick_params(axis="x", which="both", direction="out")
     
     plt.xlabel(raw"Position", fontsize=16, fontname=FONT)
     plt.ylabel(raw"$\longleftarrow$ Time", fontsize=16, fontname=FONT)
@@ -192,8 +192,9 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
     # xticks = Int64.(round.(collect(-simparams.boxwidth / 2:5:simparams.boxwidth / 2)))
     # xticks = Int64.(round.(collect(minindex / simparams.snapshot_dt:5:maxindex / simparams.snapshot_dt)))
     # plt.xticks([-50, -25, 0, 25, 50], [0, 25, 50, 75, 100])
-    plt.xticks([-10, -5, 0, 5, 10])
-    plt.yticks([80, 85, 90, 95, 100])
+    plt.xticks([-10, -5, 0, 5, 10], [0, 5, 10, 15, 20])
+    # plt.yticks([80, 85, 90, 95, 100])
+    plt.yticks(collect(mintime:5:maxtime))
 
 
 
@@ -233,9 +234,9 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
 end
 
 
-# for w in [1,2,5,10,20,50,100] 
-# w = 100
+# for w in [10] 
 
-# path = fixpath("work/data/sweeps/alignsimple/boxwidthsweep/d100/N$(w)00-B$(w).0-alignsimple-100.txt")
-# plot_1d_path_lines(path, true, true, 80, -1, [0], false)
-# # end
+# path = fixpath("work/data/sweeps/alignsimple/boxwidthsweep/d100/N2000-B20.0-alignsimple-100.txt")
+path = fixpath("work/data/13-8/N2000-B20.0-alignsimple-10-T100.txt")
+plot_1d_path_lines(path, true, false, 80, -1, [0], false)
+# end

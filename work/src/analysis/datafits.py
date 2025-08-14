@@ -44,7 +44,7 @@ def fit_oc_decay(datafile:str, plot_data:bool = False) -> list[float]:
     # read oc-data and fit to exponential OC = exp(a * t)
     max_index = 1000
     line = f.readline()
-    curve_to_fit = lambda t,a: np.exp(- a * t)
+    curve_to_fit = lambda t,a: np.exp(- t / a)
     while line != "":
         oc_data = string_list_to_number_list(line, ",")
 

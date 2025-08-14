@@ -16,33 +16,33 @@ data_dir = "../../data"
 # println(length(simdata.positions[:,1]))
 # println(length(simdata.times))
 # setup simulation params and run the simulation
-N::Int = 1e4
-boxwidth::Real = 100
+N::Int = 2e3
+boxwidth::Real = 20
 fliprate::Real = 1
 v0::Real = 1
 dt::Real = 1e-4
-totaltime::Real = 1
+totaltime::Real = 100
 interaction = alignsimple
-interactionfliprate = 300
+interactionfliprate = 100
 randomstarts = true
 snapshot_dt = 1e-2
 simparams = SimulationParameters(N, totaltime, dt, v0, fliprate, boxwidth, interaction, interactionfliprate, 0, randomstarts, snapshot_dt)
 
 
 #### STARTING SIM
-# data_file = getsimdatafilename(simparams)
+data_file = getsimdatafilename(simparams)
 
 # println(data_file)
-# simdata = runsim(simparams)
+simdata = runsim(simparams)
 
-# savesim(simdata, data_file, rowwisetxt)
+savesim(simdata, data_file, rwtserialized)
 
-# println("Saved first $(totaltime)s at $(now())")
-
-
+println("Saved first $(totaltime)s at $(now())")
 
 
-data_file = fixpath("work/data/sweeps/densitysweep/collapsed/N5000-B100.0-alignsimple-100.txt")
+
+
+# data_file = fixpath("work/data/sweeps/densitysweep/collapsed/N5000-B100.0-alignsimple-100.txt")
 
 # #### EXTENDING SIM
 # serialized = true

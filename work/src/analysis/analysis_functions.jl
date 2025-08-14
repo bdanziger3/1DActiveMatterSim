@@ -229,3 +229,32 @@ function plotfftsweep(datamatrix::Matrix{<:Real}, sweepvalues::Array{<:Real}, ou
 
 
 end
+
+
+
+
+"""
+Function to fit data to an exponential decay
+"""
+function fitdecay(xdata::Array{<:Real}, ydata::Array{<:Real})
+    # define the model to fit to
+    model(x, p) = exp.(-x ./ p[1])
+
+    # Initial parameter guess: [a, b, c]
+    p0 = [0.5]
+
+    fit = curve_fit(model, xdata, ydata, p0)
+    p_est = fit.param
+
+    # Residual variance
+    dof = length(ydata) - length(p0)  # degrees of freedom
+    resid_var = sum(abs2, fit.resid) / dof
+
+    # Covariance matrix
+    covar = inv(fit.jacobian' * fit.jacobian) * resid_var
+
+    # Standard errors (error bars for parameters)
+    stderr = sqrt(covar)
+
+    return p_est[1], stderr[1]
+end

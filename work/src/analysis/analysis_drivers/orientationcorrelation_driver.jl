@@ -14,6 +14,7 @@ using ColorSchemes
 include("../correlation_functions.jl")
 include("../../file_management/simdata_files.jl")
 include("../../utils/paths.jl")
+include("../analysis_functions.jl")
 include("../../file_management/analysis_files.jl")
 
 
@@ -30,26 +31,20 @@ Produces a line plot of the orientation self-correlation as a function of the ti
 Set `savetxt` to save a .txt file with the orientation self-correlation function results
 Set `show` to display the plot as well as saving it.
 """
-function oc_plot(filename::String, settletime::Float64=-1.0, serialized::Bool=false, saveplot::Bool=true, savetxt::Bool=true, show::Bool=false)
+function oc_plot(filename::String, settletime::Real=-1, maxdt::Real=-1, saveplot::Bool=true, savetxt::Bool=true, show::Bool=false)
     
     ORIENTATION_SELFCORRELATION_DIRNAME = "Orienation Self-Correlation"
 
     FILE_NAME_PREFIX = "orientation_selfcorrelation"
 
-    
-    # get the `SimulationData` from the file
-    local sd::SimulationData
-    if serialized
-        sd = loadcompressedfile(filename)
-    else
-        sd = loadsim(filename, rowwisetxt)
-    end
+    spins, simparams = loadsimspins(filename)
 
-    ocmat::Matrix{Float64} = orientationcorrelation(sd, settletime)
+
+    ocmat::Matrix{Float64} = orientationcorrelation(spins, simparams, settletime, maxdt)
 
     # save as a datafile if requested
     if savetxt
-        outputtextfilefullpath = joinpath(getanalysisdir(ORIENTATION_SELFCORRELATION_DIRNAME, sd.simparams), "$(FILE_NAME_PREFIX)-$(settletime).txt")
+        outputtextfilefullpath = joinpath(getanalysisdir(ORIENTATION_SELFCORRELATION_DIRNAME, simparams), "$(FILE_NAME_PREFIX)-$(settletime).txt")
         outputtextfilefullpath = checkfilename(outputtextfilefullpath)
         open(outputtextfilefullpath, "w") do io
             println(io, "Orientation Self-Correlation  Data")
@@ -60,10 +55,10 @@ function oc_plot(filename::String, settletime::Float64=-1.0, serialized::Bool=fa
 
 
     local interactionstr::String = ""
-    if sd.simparams.interaction == nointeraction
+    if simparams.interaction == nointeraction
         interactionstr = "no-interaction  "
     else
-        interactionstr = "$(sd.simparams.interaction) I=$(Int64(round(sd.simparams.interactionfliprate)))  "
+        interactionstr = "$(simparams.interaction) I=$(Int64(round(simparams.interactionfliprate)))  "
     end
 
 
@@ -79,12 +74,12 @@ function oc_plot(filename::String, settletime::Float64=-1.0, serialized::Bool=fa
     plt.plot(ocmat[1,:], ocmat[2,:])
     plt.xlabel("$(raw"Time Interval $dt$")")
     plt.ylabel("Orientation Self-Correlation\n$(raw"$\langle u_i (t + \Delta t) u_t(t)\rangle_{t,i}$")")
-    plt.title("Orientation Self-Correlation of Active Particle Simulation\n N=$(sd.simparams.numparticles)  Boxwidth=$(sd.simparams.boxwidth)  t=$(Int64(sd.simparams.totaltime))  $(interactionstr)")
+    plt.title("Orientation Self-Correlation of Active Particle Simulation\n N=$(simparams.numparticles)  Boxwidth=$(simparams.boxwidth)  t=$(Int64(simparams.totaltime))  $(interactionstr)")
     
 
     if saveplot
         # get dir path to save plot
-        datadirname = getanalysisdir(ORIENTATION_SELFCORRELATION_DIRNAME, sd.simparams)
+        datadirname = getanalysisdir(ORIENTATION_SELFCORRELATION_DIRNAME, simparams)
         outputfilename = joinpath(datadirname, "$(FILE_NAME_PREFIX).pdf")
         outputfilename = checkfilename(outputfilename)
         plt.savefig(outputfilename, bbox_inches = "tight", pad_inches=0.1)
@@ -341,27 +336,190 @@ function oc_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, s
     end
 end
 
-datafile = fixpath("work/data/sweeps/densitysweep/N500-B100.0-alignsimple-100.txt")
-datafile2 = fixpath("work/data/26-6/N5000-B100-alignsimple-100-t4-sn0.01.txt")
-datafile_nointeraction = fixpath("work/data/22-6/N10000-nointeraction-t100-sn0.01.txt")
-datafile_nointeraction_2 = fixpath("work/data/8-7/N1000-B100.0-nointeraction-100-T100.txt")
 
+"""
+Produces a line plot of the orientation self-correlation as a function of the time interval `dt`
+of all the files in a given directory, and plots the lines on the same axes.
 
-
-serialized::Bool = true
-# getposdensitydata(datafile, false, datafile_out)
-
-
-# oc_plot(datafile, -1.0, serialized, false, true, true)
+Set `savetxt` to save a .txt file with the orientation self-correlation function results
+Set `show` to display the plot as well as saving it.
+"""
+function oc_plot_dir_persistencetimes(dirname::String, sweepname::String, sweeptype::SweepType, settletime::Real=-1, maxdt::Real=-1, saveplot::Bool=true, savetxt::Bool=true, show::Bool=false, title::Bool=true)
     
+    ORIENTATION_SELFCORRELATION_DIRNAME = "Orienation Self-Correlation"
 
-# sweepdir = fixpath("/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/sweeps/densitysweep/collapsed")
-# sweepdir = fixpath("work/data/sweeps/alignsimple/interactionsweep/N1000-sweep")
-# oc_plot_dir(sweepdir, "Interaction Sweep N1000", interactionstrengthsweep, -1.0, serialized, false, false, true)
+    FILE_NAME_PREFIX = "orientation_selfcorrelation_plot"
+    persistence_time_prefix = "persistence_time_plot"
+    
+    # initialize data matrix
+    local full_ocmat::Matrix{Float64} = zeros(0,0)
+    
+    # load every file in the directory
+    datafiles_all = readdir(dirname)
+    datafiles = []
 
-dsweep_txt = fixpath("work/analysis/Orienation Self-Correlation/Align Simple/Interaction Sweep N1000/orientation_selfcorrelation_plot-settletime-1.0_0.txt")
-dsweep_txt2 = fixpath("work/analysis/Orienation Self-Correlation/Align Simple/Density Sweep 10-7/orientation_selfcorrelation_plot-settletime-1.0.txt")
-# oc_plot_txt(dsweep_txt2, 1000, false, true)
-oc_plot_txt(dsweep_txt2, 1000, true, false)
+    # only look at .txt files
+    for file in datafiles_all
+        if endswith(file, ".txt")
+            push!(datafiles, file)
+        end
+    end
+
+    sp_array::Array{SimulationParameters} = []
+    for (i, filename) in enumerate(datafiles)
+        inputfilename = joinpath(dirname, filename)
+
+        # add simparams to array
+        initialstate = loadsim_nlines(inputfilename, 1, 1, rowwisetxt, true)
+        push!(sp_array, initialstate.simparams)
+
+        # run correlation function and add to plot
+        # get the `SimulationData` from the file
+
+        spins, simparams = loadsimspins(inputfilename)
+
+        ocmat_i::Matrix{Float64} = orientationcorrelation(spins, simparams, settletime, maxdt)
+
+
+        # if `full_ocmat` is empty, add x-axis data and first line of y-axis data
+        if length(full_ocmat) == 0
+            full_ocmat = zeros(length(datafiles) + 1, size(ocmat_i)[2])
+
+            full_ocmat[1:2, :] = ocmat_i
+            
+        else
+            # else just add y-axis data
+            full_ocmat[i+1, :] = ocmat_i[2,:]
+        end
+    end
+
+    
+    # generate legend labels and title
+
+    local interactionstr::String = ""
+    if sp_array[1].interaction == nointeraction
+        interactionstr = "no-interaction  "
+    else
+        interactionstr = "$(sp_array[1].interaction) I=$(sp_array[1].interactionfliprate)"
+    end
+    
+    local legendlabels::Array{String}
+    local legendtitle::String
+    local paramsstr::String
+    local sortedorder::Vector{Int}
+    if sweeptype == densitysweep
+        legendtitle = "Number of Particles"
+        sortedorder = sortperm([sp.numparticles for sp in sp_array])
+        legendlabels = (sp -> "$(sp.numparticles)").(sp_array[sortedorder])
+        paramsstr = "t=$(Int64(sp_array[1].totaltime))  Boxwidth=$(sp_array[1].boxwidth)  $(interactionstr)"
+    elseif sweeptype == boxwidthsweep
+        legendtitle = "Box Width"
+        sortedorder = sortperm([sp.boxwidth for sp in sp_array])
+        legendlabels = (sp -> "$(sp.boxwidth)").(sp_array[sortedorder])
+        paramsstr = "t=$(Int64(sp_array[1].totaltime))  N=$(sp_array[1].numparticles)  $(interactionstr)"
+    elseif sweeptype == interactionstrengthsweep
+        interactionstr = "$(sp_array[1].interaction)"
+        legendtitle = "Interaction Fliprate"
+        sortedorder = sortperm([sp.interactionfliprate for sp in sp_array])
+        legendlabels = (sp -> "$(sp.interactionfliprate)").(sp_array[sortedorder])
+        paramsstr = "t=$(Int64(sp_array[1].totaltime))  N=$(sp_array[1].numparticles)  Boxwidth=$(sp_array[1].boxwidth). $(interactionstr)"
+    end
+
+
+    # save as a datafile if requested
+    if savetxt
+        outputtextfilefullpath = joinpath(getanalysissweepdir(ORIENTATION_SELFCORRELATION_DIRNAME, sp_array, sweepname), "$(FILE_NAME_PREFIX)-settletime$(settletime).txt")
+        outputtextfilefullpath = checkfilename(outputtextfilefullpath)
+
+        open(outputtextfilefullpath, "w") do io
+            println(io, "Orientation Self-Correlation Data")
+            println(io, "Sweep Type: $(sweeptype)")
+            println(io, "Sweep Values")
+            writedlm(io, permutedims(legendlabels), ",")
+            println(io, "Params String: $(paramsstr)")
+            println(io, "Data Matrix")
+            writedlm(io, permutedims(full_ocmat[1, :]), ",")
+            for i in sortedorder
+                writedlm(io, permutedims(full_ocmat[i+1, :]), ",")
+            end
+        end
+    end
+
+
+
+    ### Plotting
+
+    # clear plot
+    plt.clf()
+    
+    plt.grid(true, zorder=0)
+
+    for i in sortedorder
+        linecolor = get(OC_LINE_COLORMAP, sp_array[i].numparticles / sp_array[sortedorder[end]].numparticles)
+        plt.plot(full_ocmat[1,:], full_ocmat[i+1,:], color=(linecolor.r, linecolor.g, linecolor.b))
+    end
+
+    plt.legend(legendlabels, title=legendtitle)
+    plt.xlabel("$(raw"Time Interval $t$")")
+    plt.ylabel("Orientation Self-Correlation\n$(raw"$C_p(t)$")")
+
+    if title
+        plt.title("Orientation Self-Correlation of Active Particle Simulation\n$(paramsstr)")
+    end
+    
+    if saveplot
+        # get dir path to save plot
+        datadirname = getanalysissweepdir(ORIENTATION_SELFCORRELATION_DIRNAME, sp_array, sweepname)
+        outputfilename = joinpath(datadirname, "$(FILE_NAME_PREFIX).pdf")
+        outputfilename = checkfilename(outputfilename)
+        plt.savefig(outputfilename, bbox_inches = "tight", pad_inches=0.1)
+    end
+    
+    if show
+        plt.show()
+    end
+
+
+    # now fit the data to an exponential to find the persistence times
+    if savetxt
+        fit_length = 10
+        fit_samples = Int64(round(fit_length / sp_array[1].snapshot_dt))
+        xdata = full_ocmat[1, :]
+
+        paramslist = []
+        stderrlist = []
+        for i in sortedorder
+            ydata = full_ocmat[1+i, :]
+            tau, tau_stderr = fitdecay(xdata[1:fit_samples], ydata[1:fit_samples])
+
+            push!(paramslist, tau)
+            push!(stderrlist, tau_stderr)
+        end
+
+
+        tau_txtfilepath = joinpath(getanalysissweepdir(ORIENTATION_SELFCORRELATION_DIRNAME, sp_array, sweepname), "$(persistence_time_prefix)-settletime$(settletime).txt")
+        tau_realpath = checkfilename(tau_txtfilepath)
+
+        open(tau_realpath, "w") do io
+            println(io, "Fits of Orientation Self-Correlation Data")
+            println(io, "Sweep Type: $(sweeptype)")
+            println(io, "Sweep Values")
+            writedlm(io, permutedims(legendlabels), ",")
+            println(io, "Params String: $(paramsstr)")
+            println(io, "Data Matrix")
+            writedlm(io, permutedims(legendlabels), ",")    # xdata: sweep values
+            writedlm(io, permutedims(paramslist), ",")    # ydata: Tau values
+            writedlm(io, permutedims(stderrlist), ",")    # stderr: Tau Standard Error values
+        end
+            
+    end
+end
+
+
+
+
+
+sweepdir = fixpath("work/data/sweeps/alignsimple/densitysweep/Aug13-density-sweep-B50")
+oc_plot_dir_persistencetimes(sweepdir, "Aug13_DensitySweep", densitysweep, 100.0, 20, true, true, false, false)
 
 

@@ -177,21 +177,30 @@ Calculates the average Correlation between a particle's orientation and its orie
 
 Returns a matrix givng (t,C_p(t)) data
 """
-function orientationcorrelation(simdata::SimulationData, settletime::Float64=-1.0)::Matrix{Float64}
+function orientationcorrelation(spins::Matrix{Int8}, simparams::SimulationParameters, settletime::Real=-1, maxdt::Real=-1)::Matrix{Float64}
     # returns the Orientation Corelation as a function of time throughout one simulation
 
-    nsaves = getnsaves(simdata.simparams)
+    nsaves = getnsaves(simparams)
 
     # if no `settletime` provided, defaults to half of the total time
-    if settletime == -1.0
-        settletime = simdata.simparams.totaltime / 2
+    if settletime == -1
+        settletime = simparams.totaltime / 2
     end
 
+    
     # find step number corresponding to settletime
-    settleindex = getindexoftime(simdata.simparams, settletime)
-        
-    mintimestep::Float64 = simdata.simparams.snapshot_dt
-    maxtimestep::Float64 = simdata.simparams.totaltime - settletime
+    settleindex = getindexoftime(simparams, settletime)
+    
+    mintimestep::Float64 = simparams.snapshot_dt
+    
+    # if no `maxdt` provided, defaults to maximum distance between `settletime` and `totaltime`
+    local maxtimestep::Float64
+    if maxdt == -1
+        maxtimestep = simparams.totaltime - settletime
+    else
+        maxtimestep = maxdt
+    end
+    
     dtarray::Array{Float64} = collect(mintimestep:mintimestep:maxtimestep)
     ndts::Int64 = size(dtarray)[1]
 
@@ -199,7 +208,6 @@ function orientationcorrelation(simdata::SimulationData, settletime::Float64=-1.
 
     dt = mintimestep
     t0 = settleindex
-
 
 
     # evaluate for each interval dt, incremented by number of `mintimestep`s
@@ -216,19 +224,26 @@ function orientationcorrelation(simdata::SimulationData, settletime::Float64=-1.
         # calculate number of start times
         nt0s = (nsaves - settleindex) - (ndt - 1)
         for t0_i in 0:(nt0s - 1)
-            t0ocsum += sum(simdata.spins[settleindex + t0_i, :] .* simdata.spins[settleindex + t0_i + ndt, :])
+            t0ocsum += sum(spins[settleindex + t0_i, :] .* spins[settleindex + t0_i + ndt, :])
         end
 
         # now divide by total number of products taken to normalize to +-1.
-        t0ocsum /= (simdata.simparams.numparticles * nt0s)
-
-
+        t0ocsum /= (simparams.numparticles * nt0s)
 
         ocmat[1, ndt+1] = ndt * mintimestep
         ocmat[2, ndt+1] = t0ocsum
     end
 
     return ocmat
+end
+
+
+"""
+Orientation Correlation for different parameters
+"""
+function orientationcorrelation(simdata::SimulationData, settletime::Float64=-1.0)::Matrix{Float64}
+    return orientationcorrelation(simdata.spins, simdata.simparams, settletime)
+    
 end
 
 
