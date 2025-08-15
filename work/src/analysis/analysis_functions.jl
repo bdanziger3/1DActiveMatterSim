@@ -12,6 +12,7 @@ using PyCall
 using ColorSchemes
 using FFTW
 using LsqFit
+using LinearAlgebra
 
 include("../simulation/sim_structs.jl")
 
@@ -183,7 +184,6 @@ function plotfftsweep(datamatrix::Matrix{<:Real}, sweepvalues::Array{<:Real}, ou
 
     model(x, p) = (p[1] .* x) .+ p[2]
 
-    # Generate noisy data
     xdata = log10.(sweepvalues)
     ydata = log10.(avgrevtimes)
 
@@ -228,6 +228,57 @@ function plotfftsweep(datamatrix::Matrix{<:Real}, sweepvalues::Array{<:Real}, ou
 
 
 
+end
+
+"""
+Fits loglog data to a line `y = mx + b`
+and then returns the parameters [m, b] and a model for plotting
+"""
+function logloglinearfit(xdata::Array{<:Real}, ydata::Array{<:Real})
+    # compute best fit line of log
+
+    # remove 0 if in data
+    cleanedxdata = xdata[xdata .!= 0]
+    cleanedydata = ydata[ydata .!= 0]
+
+    model(x, p) = (p[1] .* x) .+ p[2]
+
+    logxdata = log10.(cleanedxdata)
+    logydata = log10.(cleanedydata)
+
+    # Initial parameter guess: [m, b]
+    # guess value closest to y axis for b
+    _, minlogx_index = findmin(abs.(logxdata))
+    mguess = (logydata[end] - logydata[1]) / (logxdata[end] - logxdata[1])
+    bguess = logydata[minlogx_index]
+    p0 = [mguess, bguess]
+
+    fit = curve_fit(model, logxdata, logydata, p0)
+    p_est = fit.param
+
+    # Residual variance
+    dof = length(logydata) - length(p0)  # degrees of freedom
+    resid_var = sum(abs2, fit.resid) / dof
+
+    # Covariance matrix
+    covar = inv(fit.jacobian' * fit.jacobian) * resid_var
+
+    # Standard errors (error bars for parameters)
+    local stderr
+    if length(covar) == 1
+        stderr = sqrt.(covar)
+    else
+        stderr = sqrt.(diag(covar))
+    end
+        
+    # bestfit_x = collect(1:200:1001)
+    # bestfit_logx = log10.(bestfit_x)
+    # bestfit_logy = model(bestfit_logx, p_est)
+    # bestfit_y = exp10.(bestfit_logy)
+
+    originaldata_model(rawx) = exp10.(model(log10.(rawx), p_est))
+
+    return p_est, stderr, originaldata_model
 end
 
 

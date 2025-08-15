@@ -18,6 +18,7 @@
 - ColorSchemes v3.30.0
 - FFTW v1.9.0
 - LsqFit v0.15.1
+- LinearAlgebra v1.11.0
 
 ## Brew
 - ImageMagick
