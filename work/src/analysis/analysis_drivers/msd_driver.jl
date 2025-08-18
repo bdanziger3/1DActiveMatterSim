@@ -26,6 +26,10 @@ MSD_LINE_DENSITY_COLORMAP = ColorSchemes.Reds_8
 MSD_LINE_INTERACTION_COLORMAP = ColorSchemes.Blues_8
 MSD_LINE_BOXWIDTH_COLORMAP = ColorSchemes.Greens_8
 
+# MSD_LINE_COLORMAP = ColorSchemes.vik100
+# MSD_LINE_COLORMAP = ColorSchemes.Blues_8
+MSD_LINE_COLORMAP = ColorSchemes.bam50
+
 FONT = "Times New Roman"
 
 # Use serif font in math text
@@ -62,7 +66,7 @@ Calculate MSD of all files in a directory and save data of all of them in a sing
 
 """
 function msd_savetxt_dir(dirpath::String, sweepname::String, sweeptype::SweepType, settletime::Real=-1.0, maxdt::Real=20)
-    filename_prefix = "mean_spin_sweep_plot"
+    filename_prefix = "msd_sweep_plot"
     
     # initialize data matrix
     local full_msdmatrix::Matrix{Float64} = zeros(0,0)
@@ -303,25 +307,95 @@ Plots the data previously saved to a txt file.
 
 Can specify `maxdt` to only plot up to that value of dt.
 """
-function msd_plot_txt(txtfilename::String, maxdt::Real=-1., saveplot::Bool=false, show::Bool=true)
+function msd_plot_txt(txtfilename::String, maxdt::Real=-1., saveplot::Bool=false, show::Bool=true, valuestoplot=nothing)
     xydatamatrix, sweeptype, legendvalues, paramsstr = msd_loadtxt(txtfilename)
-
-    nshots = length(legendvalues)
 
     # if no `maxdt` provided, defaults to maximum in data
     if maxdt == -1
         maxdt = xydatamatrix[1, end]
     end
 
-    ### Plotting
+    # find the unique sweep values
+    sweepvaluecounts = countmap(legendvalues)
+    uniquesweepvalues = sort(collect(keys(sweepvaluecounts)))
+    nvalues = length(uniquesweepvalues)
 
-    # plot linear data
-    plt.clf()
 
-    for i in 1:nshots
-        plt.plot(xydatamatrix[1, :], xydatamatrix[1+i, :])
+    # average data with same sweep value
+    averagedxydatamat::Matrix{Float64} = zeros(nvalues+1, size(xydatamatrix)[2])
+    averagedxydatamat[1, :] = xydatamatrix[1, :]
+
+
+    # TODO Calculate characteristic times for each individual sim
+    # indivtaus = [[] for _=1:nvalues]
+
+
+    for (i, val) in enumerate(legendvalues)
+        legendvalue_uniqueindex = findfirst(uniquesweepvalues .== val)
+        averagedxydatamat[legendvalue_uniqueindex+1, :] += (xydatamatrix[i+1, :] ./ sweepvaluecounts[val])
+
+
+        # tau_i, _ = fitdecay(xydatamatrix[1, 1:fit_samples], xydatamatrix[i+1, 1:fit_samples])
+        # push!(indivtaus[legendvalue_uniqueindex], tau_i) 
     end
-    plt.xlim([xydatamatrix[1, 1], maxdt])
+
+    # handle`valuestoplot`
+    if isnothing(valuestoplot)
+        valuestoplot = uniquesweepvalues
+    end
+
+    ### Plotting
+    # prepare plot
+    plt.clf()
+    ###
+
+    linecolors = []
+
+    linesplotted = 0
+    for (i, val) in enumerate(sort(intersect(uniquesweepvalues, valuestoplot)))
+        # find index of run in big matrix
+        indexinmat = findfirst(uniquesweepvalues .== val)
+        
+        # plot each line one at a time
+        positivehalf = false     # using positive half of the color scheme?
+        # if uniquesweepvalues[i] in valuestoplot
+        linesplotted += 1
+        if positivehalf
+            # linecolor = get(OC_LINE_COLORMAP, 0.5 + (0.5 * (val / maximum(intersect(uniquesweepvalues, valuestoplot)))))
+            linecolor = get(MSD_LINE_COLORMAP, 0.5 + (0.5 * (i / length(intersect(uniquesweepvalues, valuestoplot)))))
+        else
+            # linecolor = get(OC_LINE_COLORMAP, 0.5 - (0.5 * (i / nvalues)))
+            linecolor = get(MSD_LINE_COLORMAP, 0.5 - (0.5 * (i / length(intersect(uniquesweepvalues, valuestoplot)))))
+        end
+
+        push!(linecolors, linecolor)
+
+        # TODO Calculate characteristic times for averaged data
+            # tau, tau_stderr = fitdecay(averagedxydatamat[1, 1:fit_samples], averagedxydatamat[indexinmat+1, 1:fit_samples])
+
+        plt.plot(averagedxydatamat[1, :], averagedxydatamat[1+indexinmat, :], color=(linecolor.r, linecolor.g, linecolor.b))
+    end
+
+    if maxdt > 0
+        plt.xlim([0, maxdt])
+    end
+
+    # add legends and labels to plot
+    local legendlabels
+    local alllegendvalues
+    if sweeptype == densitysweep
+        # convert from N to \rho
+        legendtitle = L"$\rho$"
+        boxwidth = 50
+        legendlabels = round.(intersect(uniquesweepvalues, valuestoplot) ./ boxwidth, digits=1)
+        alllegendvalues = uniquesweepvalues ./ boxwidth
+    elseif sweeptype == interactionstrengthsweep
+        legendtitle = raw"$r_{\text{align}}$"
+        legendlabels = intersect(uniquesweepvalues, valuestoplot)
+        alllegendvalues = uniquesweepvalues
+    end
+
+    plt.legend(legendlabels, title=legendtitle, title_fontsize=16, prop=Dict("family" => FONT, "size" => 8), frameon=false, handlelength=1.0, ncol=3)
     plt.xlabel("$(raw"$t$")", fontsize=16, fontname=FONT)
     plt.ylabel(raw"MSD($t$)", fontsize=16, fontname=FONT)
     plt.tick_params(axis="x", top=true, bottom=true, direction="in", which = "both")
@@ -331,7 +405,8 @@ function msd_plot_txt(txtfilename::String, maxdt::Real=-1., saveplot::Bool=false
     if saveplot
         # get dir path to save plot
         datadirname = dirname(txtfilename)
-        plt.savefig(joinpath(datadirname, "$(FILE_NAME_PREFIX).pdf"), bbox_inches = "tight", pad_inches=0.1)
+        plotfilename = checkfilename(joinpath(datadirname, "$(FILE_NAME_PREFIX).pdf"))
+        plt.savefig(plotfilename, bbox_inches = "tight", pad_inches=0.1)
     end
 
     if show
@@ -340,15 +415,22 @@ function msd_plot_txt(txtfilename::String, maxdt::Real=-1., saveplot::Bool=false
     
     # plot on loglog axes data
     # clean data for log plot by removing 0s
-    cleandtdata = xydatamatrix[1, xydatamatrix[1, :] .!= 0]
-    cleanmsddata = xydatamatrix[2:end, xydatamatrix[1, :] .!= 0]
+    cleandtdata = averagedxydatamat[1, averagedxydatamat[1, :] .!= 0]
+    cleanmsddata = averagedxydatamat[2:end, averagedxydatamat[1, :] .!= 0]
 
     plt.clf()
 
-    for i in 1:nshots
-        plt.plot(cleandtdata, cleanmsddata[i, :])
+
+    linesplotted = 0
+    for (i, val) in enumerate(sort(intersect(uniquesweepvalues, valuestoplot)))
+        linesplotted += 1
+        # find index of run in big matrix
+        indexinmat = findfirst(uniquesweepvalues .== val)
+        linecolor = linecolors[linesplotted]
+        plt.plot(cleandtdata, cleanmsddata[i, :], color=(linecolor.r, linecolor.g, linecolor.b))
     end
 
+    plt.legend(legendlabels, title=legendtitle, title_fontsize=16, prop=Dict("family" => FONT, "size" => 8), frameon=false, handlelength=1.0, ncol=3)
     plt.xlim([cleandtdata[1], maxdt])
     axes = plt.gca()
     axes.loglog()
@@ -366,7 +448,46 @@ function msd_plot_txt(txtfilename::String, maxdt::Real=-1., saveplot::Bool=false
     if saveplot
         # get dir path to save plot
         datadirname = dirname(txtfilename)
-        plt.savefig(joinpath(datadirname, "$(FILE_NAME_PREFIX)_loglog.pdf"), bbox_inches = "tight", pad_inches=0.1)
+        plotfilename = checkfilename(joinpath(datadirname, "$(FILE_NAME_PREFIX)_loglog.pdf"))
+        plt.savefig(plotfilename, bbox_inches = "tight", pad_inches=0.1)
+    end
+    
+    if show
+        plt.show()
+    end
+
+
+    # calculate slope of logplots
+    derivlog = (log10.(cleanmsddata[:, 2:end]) .- log10.(cleanmsddata[:, 1:end-1])) ./ permutedims((log10.(cleandtdata[2:end]) .- log10.(cleandtdata[1:end-1])))
+    dtmidpoints = (cleandtdata[1:end-1] .+ cleandtdata[2:end]) ./ 2
+
+    ### Plotting
+
+    # clear plot
+    plt.clf()
+
+    linesplotted = 0
+    for (i, val) in enumerate(sort(intersect(uniquesweepvalues, valuestoplot)))
+        linesplotted += 1
+        # find index of run in big matrix
+        indexinmat = findfirst(uniquesweepvalues .== val)
+        linecolor = linecolors[linesplotted]
+        plt.plot(dtmidpoints, derivlog[i, :], color=(linecolor.r, linecolor.g, linecolor.b))
+    end
+
+    plt.legend(legendlabels, title=legendtitle, title_fontsize=16, prop=Dict("family" => FONT, "size" => 8), frameon=false, handlelength=1.0, ncol=3)
+    plt.xlim([cleandtdata[1], maxdt])
+    plt.xlabel("$(raw"$t$")", fontsize=16, fontname=FONT)
+    plt.ylabel(raw"Power Law Exponent of MSD($t$)", fontsize=16, fontname=FONT)
+    
+    plt.tick_params(axis="x", top=true, bottom=true, direction="in", which = "both")
+    plt.tick_params(axis="y", left=true, right=true, direction="in", which = "both")
+
+    if saveplot
+        # get dir path to save plot
+        datadirname = dirname(txtfilename)
+        plotfilename = checkfilename(joinpath(datadirname, "$(FILE_NAME_PREFIX)_loglog_slope.pdf"))
+        plt.savefig(plotfilename, bbox_inches = "tight", pad_inches=0.1)
     end
     
     if show
@@ -418,7 +539,8 @@ function msd_plot_txt_logslope(txtfilename::String, maxdt::Real=-1, saveplot::Bo
     if saveplot
         # get dir path to save plot
         datadirname = dirname(txtfilename)
-        plt.savefig(joinpath(datadirname, "$(FILE_NAME_PREFIX)_loglog_slope_all.pdf"), bbox_inches = "tight", pad_inches=0.1)
+        plotfilename = checkfilename(joinpath(datadirname, "$(FILE_NAME_PREFIX)_loglog_slope.pdf"))
+        plt.savefig(plotfilename, bbox_inches = "tight", pad_inches=0.1)
     end
     
     if show
@@ -550,12 +672,12 @@ end
 
 
 
-dirpath = fixpath("work/data/sweeps/alignsimple/interactionsweep/Aug15-B50-Isweep/firsthalf")
-msd_savetxt_dir(dirpath, "Aug15_rsweep_half1", interactionstrengthsweep, 100, 20)
+# dirpath = fixpath("work/data/sweeps/alignsimple/interactionsweep/Aug15-B50-Isweep/firsthalf")
+# msd_savetxt_dir(dirpath, "Aug15_rsweep_half2", interactionstrengthsweep, 100, 20)
 
 
-# txtfile = fixpath("work/analysis/Mean Squared Displacement/Align Simple/N100-B100-T100-I100/msd--1.0.txt")
+txtfile = fixpath("work/analysis/Mean Squared Displacement/Align Simple/Aug15_rsweep/msd_sweep_plot.txt")
 # txtfile2t1 = fixpath("work/analysis/Mean Squared Displacement/Align Simple/rsweep_t1/mean_spin_sweep_plot_0.txt")
 
-# msd_plot_txt(txtfile2t1, -1, false, true)
+msd_plot_txt(txtfile, 10, true, true, [1, 2, 5, 10, 20, 50, 100, 200, 500])
 # msd_plot_txt_logslope(txtfile2t1, -1, false, true)
