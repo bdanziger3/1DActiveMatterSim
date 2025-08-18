@@ -19,18 +19,16 @@ include("../analysis_functions.jl")
 include("../../file_management/analysis_files.jl")
 
 
-@enum SweepType densitysweep boxwidthsweep interactionstrengthsweep
-
-
-OC_LINE_COLORMAP = ColorSchemes.vik100
+# OC_LINE_COLORMAP = ColorSchemes.vik100
 # OC_LINE_COLORMAP = ColorSchemes.Blues_8
+OC_LINE_COLORMAP = ColorSchemes.bam50
 
 
 
 FONT = "Times New Roman"
 
 
-# PyPlot.rc("text", usetex=true)
+# Use serif font in math text
 rc("mathtext", fontset="cm")
 PyPlot.rc("font", family="serif")           
 PyPlot.rc("font", family=FONT)
@@ -208,6 +206,7 @@ function oc_load_txt(txtfilename::String)
     ###
 
     local simparamsout
+    local nshots
     if contains(lowercase(line), "sweep type")
         FILE_NAME_PREFIX = "orientation_selfcorrelation_plot"
         sweeptype = eval(Symbol(line[length("sweep type: ")+1:end]))
@@ -237,6 +236,7 @@ function oc_load_txt(txtfilename::String)
         simparamsout = paramsstr
     else
         sweeptype = nosweep      
+        nshots = 1
         # get params
         # read next line to get number of position data points
         simparaminfo_str = readline(file)
@@ -266,7 +266,7 @@ function oc_load_txt(txtfilename::String)
         xydatamatrix[i+1, :] = parse.(Float64, split(dataline, ","))
     end
     
-    return xydatamatrix, sweeptype, legendvalues, paramsstr
+    return xydatamatrix, sweeptype, legendvalues, simparamsout
 end
 
 """
@@ -479,26 +479,47 @@ function oc_average_reps_txt(txtfilename::String, maxdt::Real=-1, saveplot::Bool
 
     linesplotted = 0
     println(uniquesweepvalues)
-    for (i, val) in enumerate(intersect(uniquesweepvalues, valuestoplot))
+    for (i, val) in enumerate(sort(intersect(uniquesweepvalues, valuestoplot)))
+        # find index of run in big matrix
+        indexinmat = findfirst(uniquesweepvalues .== val)
+        
         # plot each line one at a time
         positivehalf = true     # using positive half of the color scheme?
         # if uniquesweepvalues[i] in valuestoplot
         linesplotted += 1
         if positivehalf
-            # linecolor = get(OC_LINE_COLORMAP, 0.5 + (0.5 * (uniquesweepvalues[i] / maximum(valuestoplot))))
+            # linecolor = get(OC_LINE_COLORMAP, 0.5 + (0.5 * (val / maximum(intersect(uniquesweepvalues, valuestoplot)))))
             linecolor = get(OC_LINE_COLORMAP, 0.5 + (0.5 * (i / length(intersect(uniquesweepvalues, valuestoplot)))))
         else
-            linecolor = get(OC_LINE_COLORMAP, 0.5 - (0.5 * (i / nvalues)))
+            # linecolor = get(OC_LINE_COLORMAP, 0.5 - (0.5 * (i / nvalues)))
+            linecolor = get(OC_LINE_COLORMAP, 0.5 - (0.5 * (i / length(intersect(uniquesweepvalues, valuestoplot)))))
         end
-        
-        plt.plot(averagedxydatamat[1, :], averagedxydatamat[1+i, :], color=(linecolor.r, linecolor.g, linecolor.b))
+
+        # t0x = collect(0:10:100*(20-fit_length))
+        # tauoft0 = zeros(length(t0x))
+        # for (j, t0) in enumerate(t0x)
+        #     tau, tau_stderr = fitdecay(averagedxydatamat[1, t0+1:t0+1+fit_samples], averagedxydatamat[i+1, t0+1:t0+1+fit_samples])
+        #     tauoft0[j] = tau
+        # end
+        tau, tau_stderr = fitdecay(averagedxydatamat[1, 1:fit_samples], averagedxydatamat[indexinmat+1, 1:fit_samples])
+        # println(val)
+        # plt.plot(t0x./100, tauoft0, "o-")
+        # plt.show()
+        plt.plot(averagedxydatamat[1, :], averagedxydatamat[1+indexinmat, :], color=(linecolor.r, linecolor.g, linecolor.b))
+
+        # if val == 100 || val == 250 || val == 500
+        #     xtemp = collect(0:.01:10)
+        #     ytemp = exp.(- xtemp ./ tau)
+        #     plt.plot(xtemp, ytemp, c="blue", alpha=val/500)
+        # end
+
         # end
     end
 
     if maxdt > 0
         plt.xlim([0, maxdt])
     end
-    plt.ylim([0, 1])
+    # plt.ylim([.1, 1])
 
         
     # add legends and labels to plot
@@ -564,9 +585,14 @@ function oc_average_reps_txt(txtfilename::String, maxdt::Real=-1, saveplot::Bool
 
 
     # find the linear fits of the persistence times in loglog
+    criticalval1 = 5
+    criticalval2 = 5
+    criticalindex1 = findmin(abs.(alllegendvalues .- criticalval1))[2]
+    criticalindex2 = findmin(abs.(alllegendvalues .- criticalval2))[2]
     # params, stderrs, linearmodel = logloglinearfit(alllegendvalues[1:end-5], avgtaus[1:end-5])
-    params, stderrs, linearmodel = logloglinearfit(alllegendvalues[6:end-5], avgtaus[6:end-5])
-    params2, stderrs2, linearmodel2 = logloglinearfit(alllegendvalues[end-4:end], avgtaus[end-4:end])
+    
+    params, stderrs, linearmodel = logloglinearfit(alllegendvalues[1:criticalindex2], avgtaus[1:criticalindex2])
+    params2, stderrs2, linearmodel2 = logloglinearfit(alllegendvalues[criticalindex1:end], avgtaus[criticalindex1:end])
 
     println(params)
     println(stderrs)
@@ -578,26 +604,38 @@ function oc_average_reps_txt(txtfilename::String, maxdt::Real=-1, saveplot::Bool
     # println(stderrvtau)
 
     # plot line
-    linex = collect(.1:1:100)
+    linex = collect(minimum(alllegendvalues):1:maximum(alllegendvalues))
     liney = linearmodel(linex)
+    liney2 = 1 ./ (2 .+ (linex ./ 2))
 
     # plot fit lines
     plt.clf()
     plt.plot(linex, liney, "--", c="k", linewidth=0.5)
-    plt.plot(linex, linearmodel2(linex), "--", c="olivedrab", linewidth=0.5)
+    plt.plot(linex, linearmodel2(linex), "--", c="k", linewidth=0.5)
+    plt.plot(linex, liney2, "--", c="r", linewidth=0.5)
+    # plt.plot(linex, linearmodel2(linex), "--", c="k", linewidth=0.5)
 
+    # determine marker
+    local marker
+    local markercolor
+    if sweeptype == densitysweep
+        marker = "^"
+        markercolor = "firebrick"
+    elseif sweeptype == interactionstrengthsweep
+        marker = "^"
+        markercolor = "forestgreen"
+    end
     # plot data on top
-    plt.plot(alllegendvalues, avgtaus, "^", markeredgecolor="firebrick",  markerfacecolor="none", markersize=5)
-    plt.errorbar(alllegendvalues, avgtau2, yerr=1.96.*stderrvtau, fmt="none", elinewidth=0.5, ecolor="k", barsabove=false, capsize=.5)
+    plt.plot(alllegendvalues, avgtaus, marker, markeredgecolor=markercolor,  markerfacecolor="none", markersize=5)
+    plt.errorbar(alllegendvalues, avgtau2, yerr=interval95p.*stderrvtau, fmt="none", elinewidth=0.25, ecolor="k", barsabove=false, capsize=1.5)
     
-    plt.xlabel("$(raw"$\rho$")", fontsize=24, fontname=FONT)
+    plt.xlabel(legendtitle, fontsize=24, fontname=FONT)
     plt.ylabel(L"$\tau$", fontsize=28, fontname=FONT)
 
-    
     plt.tick_params(axis="x", top=true, bottom=true, direction="in", which = "both")
     plt.tick_params(axis="y", left=true, right=true, direction="in", which = "both")
 
-    plt.ylim([.9,11])
+    # plt.ylim([.9,11])
     axes = plt.gca()
 
     plt.xscale("log")
@@ -616,6 +654,10 @@ function oc_average_reps_txt(txtfilename::String, maxdt::Real=-1, saveplot::Bool
     if show
         plt.show()
     end
+
+
+    plt.plot(alllegendvalues, avgtaus)
+    plt.show()
 
 end
 
@@ -799,7 +841,10 @@ end
 
 # sweepdir = fixpath("work/data/sweeps/alignsimple/densitysweep/Aug13-density-sweep-B50")
 # sweepdir_temp = fixpath("work/data/sweeps/alignsimple/densitysweep/tempstore")
-# oc_plot_dir_persistencetimes(sweepdir_temp, "Aug13_DensitySweep_4", densitysweep, 100.0, 20, true, true, false, false)
+datatxt = fixpath("work/analysis/Orienation Self-Correlation/Align Simple/Aug15_InteractionSweep/Aug15_InteractionSweep-full/orientation_selfcorrelation_plot-settletime100.0.txt")
+# datatxt = fixpath("work/analysis/Orienation Self-Correlation/Align Simple/Aug13_DensitySweep/total/orientation_selfcorrelation_plot-settletime100.0.txt")
 
-datatxt = fixpath("work/analysis/Orienation Self-Correlation/Align Simple/Aug13_DensitySweep/total/orientation_selfcorrelation_plot-settletime100.0.txt")
-oc_average_reps_txt(datatxt, 8, true, true, [25, 50, 100, 250, 500, 1000])
+# sweepdir_int = fixpath("work/data/sweeps/alignsimple/interactionsweep/Aug15-B50-Isweep/interactionsweep")
+# sweepdir_int_t1 = fixpath("work/data/sweeps/alignsimple/interactionsweep/Aug15-B50-Isweep/t1")
+# oc_plot_dir_persistencetimes(sweepdir_int, "Aug15_InteractionSweep-middle2", interactionstrengthsweep, 100.0, 20, true, true, false, false)
+oc_average_reps_txt(datatxt, 8, false, true, [0.5, 1, 10, 50, 100, 500])

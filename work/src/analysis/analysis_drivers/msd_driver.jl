@@ -9,18 +9,155 @@
 
 using PyPlot
 using PyCall
+using LsqFit
+using ColorSchemes
+using StatsBase
 
 include("../correlation_functions.jl")
 include("../../file_management/simdata_files.jl")
 include("../../utils/paths.jl")
 include("../../file_management/analysis_files.jl")
 
-
-@enum SweepType densitysweep boxwidthsweep interactionstrengthsweep
-
 MSD_DIRNAME = "Mean Squared Displacement"
 
 FILE_NAME_PREFIX = "msd"
+
+MSD_LINE_DENSITY_COLORMAP = ColorSchemes.Reds_8
+MSD_LINE_INTERACTION_COLORMAP = ColorSchemes.Blues_8
+MSD_LINE_BOXWIDTH_COLORMAP = ColorSchemes.Greens_8
+
+FONT = "Times New Roman"
+
+# Use serif font in math text
+rc("mathtext", fontset="cm")
+PyPlot.rc("font", family="serif")           
+PyPlot.rc("font", family=FONT)
+
+
+"""
+Calculate MSD of a single simulation and save data as a .txt file
+"""
+function msd_savetxt(filename::String, settletime::Real=-1.0)
+    # get the position data from the file
+    positions, simparams = loadsimpositions(filename)
+
+    msdmat::Matrix{Float64} = meansqdisp(positions, simparams, settletime)
+
+    # save as a datafile if requested
+    if savetxt
+        outputtextfilefullpath = joinpath(getanalysisdir(MSD_DIRNAME, simparams), "$(FILE_NAME_PREFIX)-$(settletime == -1 ? "all" : settletime).txt")
+
+        open(outputtextfilefullpath, "w") do io
+            println(io, "MSD Data")
+            println(io, "Simulation Parameters")
+            println(io, csv_serialize(simparams))
+            println(io, "Plot Data")
+            writedlm(io, msdmat, ",")
+        end
+    end
+end
+
+"""
+Calculate MSD of all files in a directory and save data of all of them in a single .txt file
+
+"""
+function msd_savetxt_dir(dirpath::String, sweepname::String, sweeptype::SweepType, settletime::Real=-1.0, maxdt::Real=20)
+    filename_prefix = "mean_spin_sweep_plot"
+    
+    # initialize data matrix
+    local full_msdmatrix::Matrix{Float64} = zeros(0,0)
+    
+    # load every file in the directory
+    datafiles_all = readdir(dirpath)
+    datafiles = []
+
+    # only look at .txt files
+    for file in datafiles_all
+        if endswith(file, ".txt")
+            push!(datafiles, file)
+        end
+    end
+
+    sp_array::Array{SimulationParameters} = []
+    for (i, filename) in enumerate(datafiles)
+        inputfilename = joinpath(dirpath, filename)
+        
+        # run MSD function and add to plot
+        # get the position data from the file
+        positions, simparams = loadsimpositions(inputfilename)
+        
+        # add simparams to array
+        push!(sp_array, simparams)
+        
+        # run mean spin calculation on data
+        msdmat_i::Matrix{Float64} = meansqdisp(positions, simparams, settletime, maxdt)
+
+        # if `full_msdmatrix` is empty, add x-axis data and first line of y-axis data
+        if length(full_msdmatrix) == 0
+            full_msdmatrix = zeros(length(datafiles) + 1, size(msdmat_i)[2])
+
+            full_msdmatrix[1:2, :] = msdmat_i
+        else
+            # else just add y-axis data
+            full_msdmatrix[i+1, :] = msdmat_i[2,:]
+        end
+    end
+
+    
+    # generate legend labels and title
+
+    local interactionstr::String = ""
+    if sp_array[1].interaction == nointeraction
+        interactionstr = "no-interaction  "
+    else
+        interactionstr = "$(sp_array[1].interaction) I=$(sp_array[1].interactionfliprate)"
+    end
+    
+    local sweepvalues::Array{Real}
+    local legendtitle::String
+    local paramsstr::String
+    local sortedorder::Vector{Int}
+    local sweepcm
+    if sweeptype == densitysweep
+        legendtitle = "Number of Particles"
+        sortedorder = sortperm([sp.numparticles for sp in sp_array])
+        sweepvalues = (sp -> sp.numparticles).(sp_array[sortedorder])
+        paramsstr = "t=$(Int64(sp_array[1].totaltime))  Boxwidth=$(sp_array[1].boxwidth)  $(interactionstr)"
+        sweepcm = MSD_LINE_DENSITY_COLORMAP
+    elseif sweeptype == boxwidthsweep
+        legendtitle = "Box Width"
+        sortedorder = sortperm([sp.boxwidth for sp in sp_array])
+        sweepvalues = (sp -> sp.boxwidth).(sp_array[sortedorder])
+        paramsstr = "t=$(Int64(sp_array[1].totaltime))  N=$(sp_array[1].numparticles)  $(interactionstr)"
+        sweepcm = MSD_LINE_BOXWIDTH_COLORMAP
+    elseif sweeptype == interactionstrengthsweep
+        interactionstr = "$(sp_array[1].interaction)"
+        legendtitle = "Interaction Fliprate"
+        sortedorder = sortperm([sp.interactionfliprate for sp in sp_array])
+        sweepvalues = (sp -> sp.interactionfliprate).(sp_array[sortedorder])
+        paramsstr = "t=$(Int64(sp_array[1].totaltime))  N=$(sp_array[1].numparticles)  Boxwidth=$(sp_array[1].boxwidth)  $(interactionstr)"
+        sweepcm = MSD_LINE_INTERACTION_COLORMAP
+    end
+    legendlabels::Array{String} = (val -> "$(val)").(sweepvalues)
+
+
+    # save as a datafile if requested
+    outputtextfilefullpath = joinpath(getanalysissweepdir(MSD_DIRNAME, sp_array[sortedorder], sweepname), "$(filename_prefix).txt")
+    outputtextfilefullpath = checkfilename(outputtextfilefullpath)
+
+    open(outputtextfilefullpath, "w") do io
+        println(io, "MSD Data")
+        println(io, "Sweep Type: $(sweeptype)")
+        println(io, "Sweep Values")
+        writedlm(io, permutedims(legendlabels), ",")
+        println(io, "Params String: $(paramsstr)")
+        println(io, "Data Matrix")
+        writedlm(io, permutedims(full_msdmatrix[1, :]), ",")
+        for i in sortedorder
+            writedlm(io, permutedims(full_msdmatrix[i+1, :]), ",")
+        end
+    end
+end
 
 """
 Produces a line plot of the mean squared displacement as a function of the time interval `dt`
@@ -28,7 +165,7 @@ Produces a line plot of the mean squared displacement as a function of the time 
 Set `savetxt` to save a .txt file with the orientation self-correlation function results
 Set `show` to display the plot as well as saving it.
 """
-function msd_plot(filename::String, settletime::Float64=-1.0, saveplot::Bool=true, savetxt::Bool=true, show::Bool=false)
+function msd_plot(filename::String, settletime::Real=-1.0, saveplot::Bool=true, savetxt::Bool=true, show::Bool=false)
     
     # get the position data from the file
     positions, simparams = loadsimpositions(filename)
@@ -65,7 +202,6 @@ function msd_plot(filename::String, settletime::Float64=-1.0, saveplot::Bool=tru
     # clear plot
     plt.clf()
     
-    plt.grid(true, zorder=0)
     plt.plot(msdmat[1,:], msdmat[2,:])
     plt.xlabel("$(raw"Time Interval $dt$")")
     plt.ylabel("Mean Squared Displacement")
@@ -84,54 +220,112 @@ function msd_plot(filename::String, settletime::Float64=-1.0, saveplot::Bool=tru
 end
 
 """
-Plots the data previously saved to a txt file.
-
-Can specify `maxindex` to only plot that many data points along the horizontal axis.
+loads msd data from saved .txt data file
 """
-function msd_plot_txt(txtfilename::String, maxindex::Int64=1000, saveplot::Bool=true, show::Bool=false)
+function msd_loadtxt(txtfilename::String)
     
     # get the plot data from the file
     file = open(txtfilename, "r")
 
     line = readline(file)
     # Check that data file header is correct
-    @assert contains(lowercase(line), "mean squared displacement data") "MSD data file does not have correct first line. File may be corrupted."
+    @assert contains(lowercase(line), "msd") "MSD data file does not have correct first line. File may be corrupted."
     
+    # check if it is a sweep
     line = readline(file)
-    @assert contains(lowercase(line), "simulation parameters") "MSD data file does not have correct first line. File may be corrupted."
-    
-    # read simparams
-    # read next line to get number of position data points
-    simparaminfo_str = readline(file)
-    simparams = SimulationParameters(simparaminfo_str)
-    
-    line = readline(file)
-    @assert contains(lowercase(line), "plot data") "MSD data file does not have correct first line. File may be corrupted."
-    
-    # read x data (dt)
-    dataline = readline(file)
-    dtdata::Array{Float64} = parse.(Float64, split(dataline, ","))
-    
-    # read y data (MSD)
-    dataline = readline(file)
-    msddata::Array{Float64} = parse.(Float64, split(dataline, ","))
 
-    local interactionstr::String = ""
-    if simparams.interaction == nointeraction
-        interactionstr = "no-interaction  "
+    local simparamsout
+    local nshots
+    if contains(lowercase(line), "sweep type")
+        sweeptype = eval(Symbol(line[length("sweep type: ")+1:end]))
+        local legendlabels::Array{String}
+        local legendtitle::String
+        local paramsstr::String
+        if sweeptype == densitysweep
+            legendtitle = "Number of Particles"
+        elseif sweeptype == boxwidthsweep
+            legendtitle = "Box Width"
+        elseif sweeptype == interactionstrengthsweep
+            legendtitle = "Interaction Fliprate"
+        end
+
+        # now get sweep values
+        line = readline(file)
+        line = readline(file)
+        
+        legendlabels = split(line, ",")
+        legendvalues = parse.(Float64, legendlabels)
+        nshots = length(legendlabels)
+        
+        # get params string for plot
+        line = readline(file)
+        paramsstr = line[length("Params String: ")+1:end]
+
+        simparamsout = paramsstr
     else
-        interactionstr = "$(simparams.interaction) I=$(Int64(round(simparams.interactionfliprate)))  "
+        sweeptype = nosweep
+        nshots = 1   
+        # get params
+        # read next line to get number of position data points
+        simparaminfo_str = readline(file)
+        simparams = SimulationParameters(simparaminfo_str)
+        simparamsout = simparams
+
+        legendvalues = [nothing]
     end
 
+    # skip to data matrix
+    while !contains(lowercase(line), "data matrix") && !contains(lowercase(line), "plot data")
+        line = readline(file)
+    end
+
+
+    # read x data (dt)
+    dataline = readline(file)
+    dtdata = parse.(Float64, split(dataline, ","))
+
+    # initialize full matrix
+    xydatamatrix::Matrix{Float64} = zeros(nshots+1, length(dtdata))
+    xydatamatrix[1, :] = dtdata
+
+    # read y data (OC)
+    for i in 1:nshots
+        dataline = readline(file)
+        xydatamatrix[i+1, :] = parse.(Float64, split(dataline, ","))
+    end
+    
+    return xydatamatrix, sweeptype, legendvalues, simparamsout
+end
+
+
+"""
+Plots the data previously saved to a txt file.
+
+Can specify `maxdt` to only plot up to that value of dt.
+"""
+function msd_plot_txt(txtfilename::String, maxdt::Real=-1., saveplot::Bool=false, show::Bool=true)
+    xydatamatrix, sweeptype, legendvalues, paramsstr = msd_loadtxt(txtfilename)
+
+    nshots = length(legendvalues)
+
+    # if no `maxdt` provided, defaults to maximum in data
+    if maxdt == -1
+        maxdt = xydatamatrix[1, end]
+    end
 
     ### Plotting
 
     # plot linear data
     plt.clf()
-    plt.plot(dtdata[1:maxindex], msddata[1:maxindex])
-    plt.xlabel("$(raw"Time Interval $\log(dt)$")")
-    plt.ylabel("$(raw"Mean Squared Displacement \n $\frac{d\log(\langle\Delta^2\rangle)}{d\log(dt)}$")")
-    plt.title("Plot of Mean Squared Displacement\nof Active Particle Simulation\n N=$(simparams.numparticles)  Boxwidth=$(simparams.boxwidth)  t=$(simparams.totaltime)  $(interactionstr)")
+
+    for i in 1:nshots
+        plt.plot(xydatamatrix[1, :], xydatamatrix[1+i, :])
+    end
+    plt.xlim([xydatamatrix[1, 1], maxdt])
+    plt.xlabel("$(raw"$t$")", fontsize=16, fontname=FONT)
+    plt.ylabel(raw"MSD($t$)", fontsize=16, fontname=FONT)
+    plt.tick_params(axis="x", top=true, bottom=true, direction="in", which = "both")
+    plt.tick_params(axis="y", left=true, right=true, direction="in", which = "both")
     
 
     if saveplot
@@ -145,14 +339,29 @@ function msd_plot_txt(txtfilename::String, maxindex::Int64=1000, saveplot::Bool=
     end
     
     # plot on loglog axes data
+    # clean data for log plot by removing 0s
+    cleandtdata = xydatamatrix[1, xydatamatrix[1, :] .!= 0]
+    cleanmsddata = xydatamatrix[2:end, xydatamatrix[1, :] .!= 0]
+
     plt.clf()
-    plt.plot(dtdata[1:maxindex], msddata[1:maxindex])
+
+    for i in 1:nshots
+        plt.plot(cleandtdata, cleanmsddata[i, :])
+    end
+
+    plt.xlim([cleandtdata[1], maxdt])
     axes = plt.gca()
     axes.loglog()
-    plt.xlabel("$(raw"Log of Time Interval $\log(dt)$")")
-    plt.ylabel("Log of the Mean Squared Displacement\n$(raw"$\frac{d\log(\langle\Delta^2\rangle)}{d\log(dt)}$")")
-    plt.title("Log-Log Plot of Mean Squared Displacement\nof Active Particle Simulation\n N=$(simparams.numparticles)  Boxwidth=$(simparams.boxwidth)  t=$(simparams.totaltime)  $(interactionstr)")
+    plt.xlabel("$(raw"$t$")", fontsize=16, fontname=FONT)
+    plt.ylabel(raw"MSD($t$)", fontsize=16, fontname=FONT)
     
+    plt.tick_params(axis="x", top=true, bottom=true, direction="in", which = "both")
+    plt.tick_params(axis="y", left=true, right=true, direction="in", which = "both")
+    
+    ax = plt.gca()
+    for label in cat(ax.get_xticklabels(), ax.get_yticklabels(), dims=1)
+        label.set_fontname(FONT)  # font family
+    end
 
     if saveplot
         # get dir path to save plot
@@ -171,59 +380,40 @@ Plots the data previously saved to a txt file.
 
 Can specify `maxindex` to only plot that many data points along the horizontal axis.
 """
-function msd_plot_txt_logslope(txtfilename::String, maxindex::Int64=1000, saveplot::Bool=true, show::Bool=false)
-    
-    # get the plot data from the file
-    file = open(txtfilename, "r")
+function msd_plot_txt_logslope(txtfilename::String, maxdt::Real=-1, saveplot::Bool=false, show::Bool=true)
+    # load data from file
+    xydatamatrix, sweeptype, legendvalues, paramsstr = msd_loadtxt(txtfilename)
 
-    line = readline(file)
-    # Check that data file header is correct
-    @assert contains(lowercase(line), "mean squared displacement data") "MSD data file does not have correct first line. File may be corrupted."
-    
-    line = readline(file)
-    @assert contains(lowercase(line), "simulation parameters") "MSD data file does not have correct first line. File may be corrupted."
-    
-    # read simparams
-    # read next line to get number of position data points
-    simparaminfo_str = readline(file)
-    simparams = SimulationParameters(simparaminfo_str)
-    
-    line = readline(file)
-    @assert contains(lowercase(line), "plot data") "MSD data file does not have correct first line. File may be corrupted."
-    
-    # read x data (dt)
-    dataline = readline(file)
-    dtdata::Array{Float64} = parse.(Float64, split(dataline, ","))
-    
-    # read y data (MSD)
-    dataline = readline(file)
-    msddata::Array{Float64} = parse.(Float64, split(dataline, ","))
+    nshots = length(legendvalues)
 
-
-    local interactionstr::String = ""
-    if simparams.interaction == nointeraction
-        interactionstr = "no-interaction  "
-    else
-        interactionstr = "$(simparams.interaction) I=$(Int64(round(simparams.interactionfliprate)))  "
+    # if no `maxdt` provided, defaults to maximum in data
+    if maxdt == -1
+        maxdt = xydatamatrix[1, end]
     end
 
+    # clean data for log plot by removing 0s
+    cleandtdata = xydatamatrix[1, xydatamatrix[1, :] .!= 0]
+    cleanmsddata = xydatamatrix[2:end, xydatamatrix[1, :] .!= 0]
+
     # calculate slope of logplots
-    derivlog = (log10.(msddata[2:maxindex+1]) .- log10.(msddata[1:maxindex])) ./ (log10.(dtdata[2:maxindex+1]) .- log10.(dtdata[1:maxindex]))
-
-    # more file naming controls
-
+    derivlog = (log10.(cleanmsddata[:, 2:end]) .- log10.(cleanmsddata[:, 1:end-1])) ./ permutedims((log10.(cleandtdata[2:end]) .- log10.(cleandtdata[1:end-1])))
+    dtmidpoints = (cleandtdata[1:end-1] .+ cleandtdata[2:end]) ./ 2
 
     ### Plotting
 
     # clear plot
     plt.clf()
+
+    for i in 1:nshots
+        plt.plot(dtmidpoints, derivlog[i, :])
+    end
+
+    plt.xlim([cleandtdata[1], maxdt])
+    plt.xlabel("$(raw"$t$")", fontsize=16, fontname=FONT)
+    plt.ylabel(raw"Slope of the LogLog MSD($t$) (Power Law Exponent)", fontsize=16, fontname=FONT)
     
-    plt.grid(true, zorder=0)
-    plt.plot(dtdata[1:maxindex], derivlog)
-    plt.xlabel("$(raw"Interval $\log(dt)$")")
-    plt.ylabel("$(raw"Slope of the Log of the Mean Squared Displacement \n $\frac{d\log(\langle\Delta^2\rangle)}{d\log(dt)}$")")
-    plt.title("Slope of Log-Log Plot of Mean Squared Displacement\nof Active Particle Simulation\n N=$(simparams.numparticles)  Boxwidth=$(simparams.boxwidth)  t=$(simparams.totaltime)  $(interactionstr)")
-    
+    plt.tick_params(axis="x", top=true, bottom=true, direction="in", which = "both")
+    plt.tick_params(axis="y", left=true, right=true, direction="in", which = "both")
 
     if saveplot
         # get dir path to save plot
@@ -358,17 +548,14 @@ function msd_plot_dir(dirname::String, sweepname::String, sweeptype::SweepType, 
     end
 end
 
-# datafile_100 = fixpath("work/data/sweeps/densitysweep/collapsed/N100-B100.0-alignsimple-100.txt")
-# datafile_100_txt = fixpath("work/analysis/Mean Squared Displacement/Align Simple/N100-B100-T100-I100/msd--1.0.txt")
-# datafile_nointeraction = fixpath("work/data/22-6/N10000-nointeraction-t100-sn0.01.txt")
-# datafile_nointeraction_2 = fixpath("work/data/8-7/N1000-B100.0-nointeraction-100-T100.txt")
-# datafile_nointeraction_2_txt = fixpath("work/analysis/Mean Squared Displacement/No Interaction/N1000-B100-T100/msd--1.0.txt")
 
 
+dirpath = fixpath("work/data/sweeps/alignsimple/interactionsweep/Aug15-B50-Isweep/firsthalf")
+msd_savetxt_dir(dirpath, "Aug15_rsweep_half1", interactionstrengthsweep, 100, 20)
 
-# # msd_plot(datafile_100, -1.0, true, true, true)
-# # msd_plot(datafile_nointeraction_2, -1.0, true, true, true)
-    
-# msd_plot_txt(datafile_nointeraction_2_txt, 4999, false, true)
-# testdir = fixpath("/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev/work/data/sweeps/densitysweep/collapsed")
-# oc_plot_dir(testdir, "Density Sweep 10-7", densitysweep, -1.0, true, true, false)
+
+# txtfile = fixpath("work/analysis/Mean Squared Displacement/Align Simple/N100-B100-T100-I100/msd--1.0.txt")
+# txtfile2t1 = fixpath("work/analysis/Mean Squared Displacement/Align Simple/rsweep_t1/mean_spin_sweep_plot_0.txt")
+
+# msd_plot_txt(txtfile2t1, -1, false, true)
+# msd_plot_txt_logslope(txtfile2t1, -1, false, true)

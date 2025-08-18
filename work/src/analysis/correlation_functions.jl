@@ -5,6 +5,7 @@ include("../simulation/basic_sim.jl")
 include("./histogram_helper.jl")
 
 
+@enum SweepType densitysweep boxwidthsweep interactionstrengthsweep nosweep
 
 """
 Mean Squared Displacement
@@ -16,7 +17,7 @@ Returns a distribution that gives the MSD (in units of length^2) as a function o
 
 Calculated from the (unrwrapped) positions
 """
-function meansqdisp(positions::Matrix{<:Float64}, simparams::SimulationParameters, settletime::Float64=-1.0)::Matrix{<:Real}
+function meansqdisp(positions::Matrix{<:Float64}, simparams::SimulationParameters, settletime::Real=-1, maxdt::Real=-1)::Matrix{<:Real}
     # returns the Mean Squared Displacement data from a SimulationData object
 
     # if no `settletime` specified, use half the `totaltime`
@@ -28,7 +29,15 @@ function meansqdisp(positions::Matrix{<:Float64}, simparams::SimulationParameter
     positions = unwrappositions(positions, simparams)
     
     mintimestep::Float64 = simparams.snapshot_dt
-    maxtimestep::Float64 = simparams.totaltime - settletime
+    
+    # if no `maxdt` provided, defaults to maximum distance between `settletime` and `totaltime`
+    local maxtimestep::Float64
+    if maxdt < 0
+        maxtimestep = simparams.totaltime - settletime
+    else
+        maxtimestep = maxdt
+    end
+
     ndts::Int64 = Int64(floor(maxtimestep / mintimestep))
     
     # calculate snapshot index of the settletime
@@ -73,8 +82,8 @@ Returns a distribution that gives the MSD (in units of length^2) as a function o
 
 Calculated from the (unrwrapped) positions
 """
-function meansqdisp(simdata::SimulationData, settletime::Float64=-1.0)::Matrix{<:Real}
-    return meansqdisp(simdata.positions, simdata.simparams, settletime)
+function meansqdisp(simdata::SimulationData, settletime::Real=-1.0, maxdt::Real=-1.0)::Matrix{<:Real}
+    return meansqdisp(simdata.positions, simdata.simparams, settletime, maxdt)
 end
 
 
@@ -241,8 +250,8 @@ end
 """
 Orientation Correlation for different parameters
 """
-function orientationcorrelation(simdata::SimulationData, settletime::Float64=-1.0)::Matrix{Float64}
-    return orientationcorrelation(simdata.spins, simdata.simparams, settletime)
+function orientationcorrelation(simdata::SimulationData, settletime::Real=-1, maxdt::Real=-1)::Matrix{Float64}
+    return orientationcorrelation(simdata.spins, simdata.simparams, settletime, maxdt)
     
 end
 

@@ -147,12 +147,12 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
     
     unwrappedpos = unwrappositions(positions, simparams)
 
-    pathalpha =  .05
+    pathalpha =  .1
 
     # clear plot
     plt.clf()
     # plt.xlim([-simparams.boxwidth / 2, simparams.boxwidth / 2])
-    plt.xlim([-10, 10])
+    plt.xlim([-25, 25])
     plt.ylim([mintime, maxtime])
     
     @showprogress 1 "plotting paths..." for p in 1:simparams.numparticles
@@ -192,7 +192,8 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
     # xticks = Int64.(round.(collect(-simparams.boxwidth / 2:5:simparams.boxwidth / 2)))
     # xticks = Int64.(round.(collect(minindex / simparams.snapshot_dt:5:maxindex / simparams.snapshot_dt)))
     # plt.xticks([-50, -25, 0, 25, 50], [0, 25, 50, 75, 100])
-    plt.xticks([-10, -5, 0, 5, 10], [0, 5, 10, 15, 20])
+    # plt.xticks([-10, -5, 0, 5, 10], [0, 5, 10, 15, 20])
+    plt.xticks([-25, -15, -5, 5, 15, 25], [0, 10, 20, 30, 40, 50])
     # plt.yticks([80, 85, 90, 95, 100])
     plt.yticks(collect(mintime:5:maxtime))
 
@@ -237,6 +238,8 @@ end
 # for w in [10] 
 
 # path = fixpath("work/data/sweeps/alignsimple/boxwidthsweep/d100/N2000-B20.0-alignsimple-100.txt")
-path = fixpath("work/data/13-8/N2000-B20.0-alignsimple-10-T100.txt")
-plot_1d_path_lines(path, true, false, 80, -1, [0], false)
+# path = fixpath("work/data/sweeps/alignsimple/densitysweep/Aug13-density-sweep-B50/N500-B50.0-alignsimple-100.0_rep3.txt")
+# plot_1d_path_lines(path, true, false, 480, -1, [0], false)
+path = fixpath("work/data/sweeps/alignsimple/densitysweep/Aug13-density-sweep-B50/N50-B50.0-alignsimple-100.0_rep3.txt")
+plot_1d_path_lines(path, true, false, 480, -1, [0], false)
 # end

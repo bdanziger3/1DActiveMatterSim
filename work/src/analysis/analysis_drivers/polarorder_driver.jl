@@ -19,9 +19,6 @@ include("../../file_management/analysis_files.jl")
 include("../analysis_functions.jl")
 
 
-@enum SweepType densitysweep boxwidthsweep interactionstrengthsweep nosweep
-
-
 MS_LINE_DEFAULT_COLOR = "darkviolet"
 MEAN_SPIN_DIRNAME = "Mean Spin"
 FILE_NAME_PREFIX = "mean_spin"

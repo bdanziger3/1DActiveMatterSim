@@ -282,6 +282,56 @@ function logloglinearfit(xdata::Array{<:Real}, ydata::Array{<:Real})
 end
 
 
+"""
+Fits loglog data to a line `y = mx + b`
+and then returns the parameters [m, b] and a model for plotting
+"""
+function logylinearfit(xdata::Array{<:Real}, ydata::Array{<:Real})
+    # compute best fit line of log
+
+    # remove 0 if in data
+    cleanedydata = ydata[ydata .!= 0]
+
+    model(x, p) = (p[1] .* x) .+ p[2]
+
+    logydata = log10.(cleanedydata)
+
+    # Initial parameter guess: [m, b]
+    # guess value closest to y axis for b
+    _, minx_index = findmin(abs.(xdata))
+    mguess = (logydata[end] - logydata[1]) / (xdata[end] - xdata[1])
+    bguess = logydata[minx_index]
+    p0 = [mguess, bguess]
+
+    fit = curve_fit(model, minx_index, logydata, p0)
+    p_est = fit.param
+
+    # Residual variance
+    dof = length(logydata) - length(p0)  # degrees of freedom
+    resid_var = sum(abs2, fit.resid) / dof
+
+    # Covariance matrix
+    covar = inv(fit.jacobian' * fit.jacobian) * resid_var
+
+    # Standard errors (error bars for parameters)
+    local stderr
+    if length(covar) == 1
+        stderr = sqrt.(covar)
+    else
+        stderr = sqrt.(diag(covar))
+    end
+        
+    # bestfit_x = collect(1:200:1001)
+    # bestfit_logx = log10.(bestfit_x)
+    # bestfit_logy = model(bestfit_logx, p_est)
+    # bestfit_y = exp10.(bestfit_logy)
+
+    originaldata_model(rawx) = exp10.(model(rawx, p_est))
+
+    return p_est, stderr, originaldata_model
+end
+
+
 
 
 """

@@ -229,3 +229,10 @@ $\log(n)$
 - What is the measure of uncertainty? Vicsek mentions that the `"uncertainty is within the width of the data points"` but what does that mean with particle simulation and average velocity? Is he saying the uncertainty over many runs?
 
 
+# Week of 17 Aug
+
+### Questions:
+
+- Error bars: should I use standard error or 95% confidence (1.96 * \sigma)
+
+- Capitalisation of words like 'figure', 'equation', 'section', or 'chapter' when referring to other parts of my dissertation
