@@ -103,11 +103,45 @@ function getfftreversaltime(podata::Matrix{<:Real}, snapshot_dt::Float64=0.01)::
     return reversaltime_avg
 end
 
+function getfftreversaltimes(msdata::Matrix{<:Real}, settletime::Real=100)
+    dt = msdata[1, 2] - msdata[1, 1]
+    settledindex = Int64(round(settletime / dt))
+    settleddata = msdata[:, settledindex:end]
 
-function plotfftsweep(datamatrix::Matrix{<:Real}, sweepvalues::Array{<:Real}, outputplotdir::String="", sweepcolormap=ColorSchemes.balance, snapshot_dt::Float64=0.01, show::Bool=false)
+    nshots = size(msdata)[1] - 1
+    nsamples = size(settleddata)[2]
+    samplingfreq = 1 / dt
+    freqs = rfftfreq(nsamples, samplingfreq)
+
+    revtimes = zeros(nshots)
+    revtimes2 = zeros(nshots)
+    for i in 1:nshots
+        # Run FFT on data
+        transformeddata_i = rfft(settleddata[i+1, :])
+
+        reversaltime_avg = sum((1 ./ (2 .* freqs[2:end])) .* abs.(transformeddata_i[2:end])) / sum(abs.(transformeddata_i[2:end])) # Spectral centroid
+        reversaltime_avg2 = sum((1 ./ (2 .* freqs[2:end])) .* abs2.(transformeddata_i[2:end])) / sum(abs2.(transformeddata_i[2:end])) # Spectral centroid
+
+        revtimes[i] = reversaltime_avg
+        revtimes2[i] = reversaltime_avg2
+    end
+
+    return revtimes, revtimes2
+end
+
+
+function plotfftsweep(datamatrix::Matrix{<:Real}, sweepvalues::Array{<:Real}, settletime::Real=-1, outputplotdir::String="", show::Bool=true, sweepcolormap=ColorSchemes.balance, snapshot_dt::Float64=0.01)
 
     nshots = size(datamatrix)[1] - 1
-    settledindex = 10000
+
+    
+    if settletime == -1
+        settledindex = Int64(Round(size(datamatrix)[2] / 2))
+    else
+        settledindex = Int64(round(settletime / snapshot_dt))
+    end
+
+
 
     settleddata = datamatrix[:, settledindex:end]
 
@@ -181,34 +215,36 @@ function plotfftsweep(datamatrix::Matrix{<:Real}, sweepvalues::Array{<:Real}, ou
         avgrevtimes = avgrevtimes[2:end]
     end
 
+    println(sweepvalues)
+    println(avgrevtimes)
 
     model(x, p) = (p[1] .* x) .+ p[2]
 
     xdata = log10.(sweepvalues)
     ydata = log10.(avgrevtimes)
 
-    # Initial parameter guess: [a, b, c]
-    p0 = [0.3, 0.0]
+    # # Initial parameter guess: [a, b, c]
+    # p0 = [0.3, 0.0]
 
-    # fit only data after ~I=10 since that is when we see the clusters form visually
-    min_sweep = 2.5
-    fit = curve_fit(model, xdata[sweepvalues .>= min_sweep], ydata[sweepvalues .>= min_sweep], p0)
-    p_est = fit.param
-    println("Estimated parameters: ", p_est)
+    # # fit only data after ~I=10 since that is when we see the clusters form visually
+    # min_sweep = 2.5
+    # fit = curve_fit(model, xdata[sweepvalues .>= min_sweep], ydata[sweepvalues .>= min_sweep], p0)
+    # p_est = fit.param
+    # println("Estimated parameters: ", p_est)
 
-    bestfit_x = collect(1:200:1001)
-    bestfit_logx = log10.(bestfit_x)
-    bestfit_logy = model(bestfit_logx, p_est)
-    bestfit_y = exp10.(bestfit_logy)
+    # bestfit_x = collect(1:200:1001)
+    # bestfit_logx = log10.(bestfit_x)
+    # bestfit_logy = model(bestfit_logx, p_est)
+    # bestfit_y = exp10.(bestfit_logy)
 
 
 
     plt.grid(true, "both", zorder=0)
     # plt.plot(sweepvalues, avgrevtimes, "-o")
     plt.plot(sweepvalues, avgrevtimes, "o", markerfacecolor="none", markeredgecolor="seagreen", label="Data")
-    plt.plot(bestfit_x, bestfit_y, "--", label="Best Fit", color="black")
+    # plt.plot(bestfit_x, bestfit_y, "--", label="Best Fit", color="black")
     
-    plt.text("m = $(p[1])")
+    # plt.text("m = $(p[1])")
 
     plt.xscale("log")
     plt.yscale("log")
@@ -239,7 +275,7 @@ function logloglinearfit(xdata::Array{<:Real}, ydata::Array{<:Real})
 
     # remove 0 if in data
     cleanedxdata = xdata[xdata .!= 0]
-    cleanedydata = ydata[ydata .!= 0]
+    cleanedydata = ydata[xdata .!= 0]
 
     model(x, p) = (p[1] .* x) .+ p[2]
 

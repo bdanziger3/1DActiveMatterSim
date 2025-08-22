@@ -97,9 +97,9 @@ function mcl_plot(filename::String, saveplot::Bool=false, savetxt::Bool=false, s
     # more file naming controls
 
     # clear plot
-    plt.clf()
+    # plt.clf()
     
-    plt.grid(true, zorder=0)
+    # plt.grid(true, zorder=0)
     plt.plot(mclmat[1, :], mclmat[2, :])
     # plt.xlabel(MS_PLOT_XLABEL)
     # plt.ylabel(MS_PLOT_YLABEL)
@@ -122,8 +122,19 @@ end
 p1 = fixpath("work/data/sweeps/alignsimple/interactionsweep/N1000-sweep-t1000/N1000-B100.0-alignsimple-50.txt")
 p2 = fixpath("work/data/sweeps/alignsimple/interactionsweep/N1000-sweep-t1000/N1000-B100.0-alignsimple-100.txt")
 p3 = fixpath("work/data/sweeps/alignsimple/interactionsweep/N1000-sweep-t1000/N1000-B100.0-alignsimple-300.txt")
+# p4 = fixpath("work/data/sweeps/alignsimple/densitysweep/Aug13-density-sweep-B50/N500-B50.0-alignsimple-100.0_rep4.txt")
+# p5 = fixpath("work/data/sweeps/alignsimple/densitysweep/Aug13-density-sweep-B50/N2500-B50.0-alignsimple-100.0_rep4.txt")
+# p6 = fixpath("work/data/sweeps/alignsimple/densitysweep/Aug13-density-sweep-B50/N50-B50.0-alignsimple-100.0_rep4.txt")
 
-mcl_plot(p1)
+mcl_plot(p1, false, false, false)
+mcl_plot(p2, false, false, false)
+mcl_plot(p3, false, false, false)
+plt.show()
+
+# mcl_plot(p4, false, false, false)
+# mcl_plot(p5, false, false, false)
+# mcl_plot(p6, false, false, false)
+# plt.show()
 
 # """
 # Plots the data previously saved to a `.txt` file.

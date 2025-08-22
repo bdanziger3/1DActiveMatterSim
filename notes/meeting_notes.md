@@ -236,3 +236,43 @@ $\log(n)$
 - Error bars: should I use standard error or 95% confidence (1.96 * \sigma)
 
 - Capitalisation of words like 'figure', 'equation', 'section', or 'chapter' when referring to other parts of my dissertation
+
+
+- Add diagrams for
+    - showing Vicsek model
+    - Explaining expected motion of brownian vs run and tumble particles
+    - Explaining what systems with high vs low polar order look like
+    - explaining ballistic vs diffusive behavior
+
+- Other notes
+    - dont need v(t) equation it is trivial
+    - make descriptions less redundant and make them in order of complexity
+    - add labels to plot to show $\rho$ or $\nu$ so that you don't have to read the caption
+    - Talk less about exponents
+        - $\nu$ sweep can't even argue that it's polynomial
+        - focus on qualitative results
+
+    - Only do MSD of turn-away
+    - talk about qualitative resutls
+    - show that becomes subdiffusive at high $\nu$ (Slope < 1)
+
+
+    - MSD tells you the time where ballistic becomes diffusive. Also tells you about long range motion. i.e. the coefficient of the long range motion after becomes diffusive.
+
+
+
+# 19 August Meeting
+### Questions:
+    - ask whether plot subcaption looks better on bottom or in corner
+    
+
+
+# 19 August Meeting
+    - talk about caging
+    -add intro sentences to each section and subsection to introduce what I am going to go into
+
+
+    - talk about Equation 32 in Zöttl and Stark paper with MSD diffusion times
+
+    - look at turnaround time equation and make sure it is right
+        - might need to take absolute value of F(t)

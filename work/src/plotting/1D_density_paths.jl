@@ -116,7 +116,7 @@ end
 Plots the lines of particle positoins.
 
 """
-function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=true, mintime::Real=0, maxtime::Real=-1, highlight::Array{Int64}=[0], title::Bool=true)    
+function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=true, mintime::Real=0, maxtime::Real=-1, highlight::Array{Int64}=[0], title::Bool=true, alpha::Real=0.05, lw::Real=1)    
     # get the spin data from the file
     positions, simparams = loadsimpositions(filename)
 
@@ -147,31 +147,32 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
     
     unwrappedpos = unwrappositions(positions, simparams)
 
-    pathalpha =  .1
+    pathalpha =  alpha
 
     # clear plot
     plt.clf()
-    # plt.xlim([-simparams.boxwidth / 2, simparams.boxwidth / 2])
-    plt.xlim([-25, 25])
+    plt.xlim([-simparams.boxwidth / 2, simparams.boxwidth / 2])
+    # plt.xlim([-25, 25])
     plt.ylim([mintime, maxtime])
     
     @showprogress 1 "plotting paths..." for p in 1:simparams.numparticles
         maxscrens = round(maximum(unwrappedpos[:,p]) / simparams.boxwidth)
         minscrens = round(minimum(unwrappedpos[:,p]) / simparams.boxwidth)
         for s in collect(minscrens:maxscrens)
-            plt.plot(unwrappedpos[minindex:maxindex ,p] .- (s .* simparams.boxwidth), savetimes[minindex:maxindex], c=PARTICLE_PATH_COLOR, alpha=pathalpha, linewidth=1)
+            plt.plot(unwrappedpos[minindex:maxindex ,p] .- (s .* simparams.boxwidth), savetimes[minindex:maxindex], c=PARTICLE_PATH_COLOR, alpha=pathalpha, linewidth=lw)
         end
     end
 
     # now highlight certain paths
-    highlightcolors = ["orangered", "mediumvioletred", "darkgreen"]
+    # highlightcolors = [ "orangered", "mediumvioletred", "darkgreen"]
+    highlightcolors = ["k"]
     numhighlightpaths = length(highlight)
     for p_i in 1:numhighlightpaths
         if highlight[p_i] != 0
             maxscrens = round(maximum(unwrappedpos[:,p_i]) / simparams.boxwidth)
             minscrens = round(minimum(unwrappedpos[:,p_i]) / simparams.boxwidth)
             for s in collect(minscrens:maxscrens)
-                plt.plot(unwrappedpos[minindex:maxindex ,p_i] .- (s * simparams.boxwidth), savetimes[minindex:maxindex], c=highlightcolors[Int64(mod(p_i, numhighlightpaths)) + 1], alpha=1.0, linewidth=1)
+                plt.plot(unwrappedpos[minindex:maxindex ,p_i] .- (s * simparams.boxwidth), savetimes[minindex:maxindex], c=highlightcolors[Int64(mod(p_i, length(highlightcolors))) + 1], alpha=1.0, linewidth=1)
             end
         end
     end
@@ -194,6 +195,7 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
     # plt.xticks([-50, -25, 0, 25, 50], [0, 25, 50, 75, 100])
     # plt.xticks([-10, -5, 0, 5, 10], [0, 5, 10, 15, 20])
     plt.xticks([-25, -15, -5, 5, 15, 25], [0, 10, 20, 30, 40, 50])
+    # plt.xticks([-10, -5, 0, 5, 10], [0, 5, 10, 15, 20])
     # plt.yticks([80, 85, 90, 95, 100])
     plt.yticks(collect(mintime:5:maxtime))
 
@@ -235,11 +237,15 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
 end
 
 
-# for w in [10] 
-
-# path = fixpath("work/data/sweeps/alignsimple/boxwidthsweep/d100/N2000-B20.0-alignsimple-100.txt")
+# path = fixpath("work/data/sweeps/alignsimple/interactionsweep/Aug15-B50-Isweep/N500-B50.0-alignsimple-0.5_rep2.txt")
+# path = fixpath("work/data/13-8/N2000-B20.0-alignsimple-10-T100.txt")
 # path = fixpath("work/data/sweeps/alignsimple/densitysweep/Aug13-density-sweep-B50/N500-B50.0-alignsimple-100.0_rep3.txt")
+# path = fixpath("work/data/sweeps/alignsimple/densitysweep/Aug13-density-sweep-B50/N2500-B50.0-alignsimple-100.0_rep5.txt")
 # plot_1d_path_lines(path, true, false, 480, -1, [0], false)
-path = fixpath("work/data/sweeps/alignsimple/densitysweep/Aug13-density-sweep-B50/N50-B50.0-alignsimple-100.0_rep3.txt")
-plot_1d_path_lines(path, true, false, 480, -1, [0], false)
-# end
+# path = fixpath("work/data/19-8/N2000-B20.0-nointeraction-0-T100.txt")
+
+for i in [2, 5, 10, 20, 50, 100]
+    path = fixpath("work/data/sweeps/turnaway/interactionsweep/N500-B50/interactionsweep/N500-B50.0-turnaway-$i.0_rep5.txt")
+    plot_1d_path_lines(path, true, false, 480, 500, [1, 70, 400], false, 1, .1)
+end
+# plot_1d_path_lines(path, true, false, 480, 500, [1, 5, 70], false, 0.2, .1)

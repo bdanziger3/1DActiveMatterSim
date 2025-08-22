@@ -3,6 +3,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mplc
+import matplotlib.cm as cm
 from matplotlib.animation import FuncAnimation
 import moviepy
 
@@ -16,6 +17,8 @@ from utils.paths import fix_path
 SPIN_UP_COLOR = "red"
 SPIN_DOWN_COLOR = "blue"
 FOLLOWING_COLOR = "darkorchid"
+CYCLIC_CMAP = cm.get_cmap("twilight")
+
 ALPHA = 0.3
 PLOT_YLIM = 0.2
 PLOT_DOT_SIZE = 10
@@ -34,7 +37,7 @@ def print_save_progress(current_frame: int, total_frames: int):
     if (total_frames - current_frame) / total_frames < .01 or (total_frames - current_frame) <= 2: 
         print(f"\033[KSaving File...", end="\r")
 
-def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 30, y_offset=False, save_filepath=None, debug_mode=None, file_suffix=None, delete_uncompressed=False):
+def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 30, y_offset=False, save_filepath=None, debug_mode=None, file_suffix=None, delete_uncompressed=False, color_track=False):
     # prepare simfile if needed
     prepared_file_path = prepare_simfile(file_str)
     
@@ -80,7 +83,13 @@ def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 3
     up_rgba = mplc.colorConverter.to_rgba(SPIN_UP_COLOR, alpha=ALPHA)
     down_rgbpa = mplc.colorConverter.to_rgba(SPIN_DOWN_COLOR, alpha=ALPHA)
 
-    sc = ax.scatter(np.transpose(init_xdata), np.transpose(init_ydata), s=marker_size, c="k", marker='.', animated=True)
+    if color_track:
+        # color by sorted position order and keep colors constant to make it easier to track them
+        sorted_i = np.argsort(np.argsort(sim_data.positions[0,:]))
+        colors = [CYCLIC_CMAP(sorted_i[i] / sim_data._sim_params._num_particles) for i in np.arange(sim_data._sim_params._num_particles)]
+        sc = ax.scatter(np.transpose(init_xdata), np.transpose(init_ydata), s=marker_size, c=colors, marker='.', animated=True)
+    else:
+        sc = ax.scatter(np.transpose(init_xdata), np.transpose(init_ydata), s=marker_size, c="k", marker='.', animated=True)
     title = ax.text((sim_data._sim_params._box_width/2) - .15, PLOT_YLIM+.01, "t = 0", fontsize=12)
     label = ax.text(-.5, PLOT_YLIM+.01, f"Particles: {sim_data._sim_params._num_particles}\nStochastic Flip Rate: {np.round(sim_data._sim_params._flip_rate, 4)}\nInteraction: {sim_data._sim_params._interaction}\nInteraction Flip Rate: {np.round(sim_data._sim_params._interaction_fliprate, 4)}", fontsize=8)
 
@@ -94,7 +103,8 @@ def sim_animate(file_str:str, show:bool = True, save:bool = False, fps:float = 3
     def sim_update(frame):
         offsets[:,0] = sim_data.positions[frame]
         sc.set_offsets(offsets)
-        sc.set_color([up_rgba if x == 1 else down_rgbpa for x in sim_data.spins[frame]])
+        if not color_track: # update colors if doing redblue
+            sc.set_color([up_rgba if x == 1 else down_rgbpa for x in sim_data.spins[frame]])
         title.set_text(f"t = {np.round(times[frame], 5)}")
 
         return sc, title

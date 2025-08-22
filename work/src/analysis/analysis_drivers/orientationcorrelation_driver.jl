@@ -607,13 +607,21 @@ function oc_average_reps_txt(txtfilename::String, maxdt::Real=-1, saveplot::Bool
     linex = collect(minimum(alllegendvalues):1:maximum(alllegendvalues))
     liney = linearmodel(linex)
     liney2 = 1 ./ (2 .+ (linex ./ 2))
-
+    
     # plot fit lines
     plt.clf()
-    plt.plot(linex, liney, "--", c="k", linewidth=0.5)
-    plt.plot(linex, linearmodel2(linex), "--", c="k", linewidth=0.5)
-    plt.plot(linex, liney2, "--", c="r", linewidth=0.5)
+    # plt.plot(linex, liney, "--", c="k", linewidth=0.5)
     # plt.plot(linex, linearmodel2(linex), "--", c="k", linewidth=0.5)
+    # plt.plot(linex, liney2, "--", c="r", linewidth=0.5)
+    # plt.plot(linex, linearmodel2(linex), "--", c="k", linewidth=0.5)
+    
+    # plot potential theoretical fit
+    lowlinex = collect(.5:.001:2)
+    noflockyline = 1 ./ (2 .+ (lowlinex ./ 2))
+    plt.plot(lowlinex, noflockyline, "--", c="r", linewidth=0.5)
+
+    # plt.ylim([.3, 8])
+
 
     # determine marker
     local marker
@@ -847,4 +855,4 @@ datatxt = fixpath("work/analysis/Orienation Self-Correlation/Align Simple/Aug15_
 # sweepdir_int = fixpath("work/data/sweeps/alignsimple/interactionsweep/Aug15-B50-Isweep/interactionsweep")
 # sweepdir_int_t1 = fixpath("work/data/sweeps/alignsimple/interactionsweep/Aug15-B50-Isweep/t1")
 # oc_plot_dir_persistencetimes(sweepdir_int, "Aug15_InteractionSweep-middle2", interactionstrengthsweep, 100.0, 20, true, true, false, false)
-oc_average_reps_txt(datatxt, 8, false, true, [0.5, 1, 10, 50, 100, 500])
+oc_average_reps_txt(datatxt, 8, true, true, [0.5, 1, 10, 50, 100, 500])
