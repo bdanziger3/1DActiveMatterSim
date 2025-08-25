@@ -1,7 +1,7 @@
 ########################
 # convertsimdata.jl
 # Blake Danziger
-# 1D Active Solids
+# 1D Active Matter Sim
 # MSc Theoretical Physics Dissertation (2025)
 
 # Script file that can be executed from the command line to collapse, serialize, and deserialize data files.

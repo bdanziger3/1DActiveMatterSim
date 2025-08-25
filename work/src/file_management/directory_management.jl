@@ -1,7 +1,7 @@
 ########################
 # directory_management.jl
 # Blake Danziger
-# 1D Active Solids
+# 1D Active Matter Sim
 # MSc Theoretical Physics Dissertation (2025)
 
 # File containing functions to compress, uncompress, and collapse all data files in a directory.

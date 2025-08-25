@@ -1,7 +1,7 @@
 ########################
 # load_analysis_data.py
 # Blake Danziger
-# 1D Active Solids
+# 1D Active Matter Sim
 # MSc Theoretical Physics Dissertation (2025)
 
 # File containing functions to load output .txt data from analysis functions

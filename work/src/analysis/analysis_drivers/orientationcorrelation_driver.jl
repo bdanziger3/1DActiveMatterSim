@@ -1,7 +1,7 @@
 ########################
 # orientationcorrelation_driver.jl
 # Blake Danziger
-# 1D Active Solids
+# 1D Active Matter Sim
 # MSc Theoretical Physics Dissertation (2025)
 
 # File containing driver code to run orientation self-correlation function on variou data files and plot results
@@ -505,7 +505,8 @@ function oc_average_reps_txt(txtfilename::String, maxdt::Real=-1, saveplot::Bool
         # println(val)
         # plt.plot(t0x./100, tauoft0, "o-")
         # plt.show()
-        plt.plot(averagedxydatamat[1, :], averagedxydatamat[1+indexinmat, :], color=(linecolor.r, linecolor.g, linecolor.b))
+        # plt.plot(averagedxydatamat[1, :], averagedxydatamat[1+indexinmat, :], color=(linecolor.r, linecolor.g, linecolor.b))
+        plt.plot(averagedxydatamat[1, :], averagedxydatamat[1+indexinmat, :], color="dodgerblue", linewidth=1.5)
 
         # if val == 100 || val == 250 || val == 500
         #     xtemp = collect(0:.01:10)
@@ -536,7 +537,13 @@ function oc_average_reps_txt(txtfilename::String, maxdt::Real=-1, saveplot::Bool
         legendlabels = intersect(uniquesweepvalues, valuestoplot)
         alllegendvalues = uniquesweepvalues
     end
-    plt.legend(legendlabels, title=legendtitle, title_fontsize=16, prop=Dict("family" => FONT, "size" => 8), frameon=false, handlelength=1.0, ncol=3)
+
+    xpts = collect(0:.01:maxdt)
+    ypts = exp.(-2 .* xpts)
+    plt.plot(xpts, ypts, "--", linewidth=1, c="k")
+
+
+    # plt.legend(legendlabels, title=legendtitle, title_fontsize=16, prop=Dict("family" => FONT, "size" => 8), frameon=false, handlelength=1.0, ncol=3)
     plt.xlabel("$(raw"$t$")", fontsize=16, fontname=FONT)
     plt.ylabel(L"$C_p(t)$", fontsize=16, fontname=FONT)
 
@@ -619,6 +626,7 @@ function oc_average_reps_txt(txtfilename::String, maxdt::Real=-1, saveplot::Bool
     lowlinex = collect(.5:.001:2)
     noflockyline = 1 ./ (2 .+ (lowlinex ./ 2))
     plt.plot(lowlinex, noflockyline, "--", c="r", linewidth=0.5)
+
 
     # plt.ylim([.3, 8])
 
@@ -849,10 +857,13 @@ end
 
 # sweepdir = fixpath("work/data/sweeps/alignsimple/densitysweep/Aug13-density-sweep-B50")
 # sweepdir_temp = fixpath("work/data/sweeps/alignsimple/densitysweep/tempstore")
-datatxt = fixpath("work/analysis/Orienation Self-Correlation/Align Simple/Aug15_InteractionSweep/Aug15_InteractionSweep-full/orientation_selfcorrelation_plot-settletime100.0.txt")
+# datatxt = fixpath("work/analysis/Orienation Self-Correlation/Align Simple/Aug15_InteractionSweep/Aug15_InteractionSweep-full/orientation_selfcorrelation_plot-settletime100.0.txt")
 # datatxt = fixpath("work/analysis/Orienation Self-Correlation/Align Simple/Aug13_DensitySweep/total/orientation_selfcorrelation_plot-settletime100.0.txt")
+datatxtnoint = fixpath("work/analysis/Orienation Self-Correlation/No Interaction/test1/orientation_selfcorrelation_plot-settletime100.0.txt")
+
+
 
 # sweepdir_int = fixpath("work/data/sweeps/alignsimple/interactionsweep/Aug15-B50-Isweep/interactionsweep")
 # sweepdir_int_t1 = fixpath("work/data/sweeps/alignsimple/interactionsweep/Aug15-B50-Isweep/t1")
 # oc_plot_dir_persistencetimes(sweepdir_int, "Aug15_InteractionSweep-middle2", interactionstrengthsweep, 100.0, 20, true, true, false, false)
-oc_average_reps_txt(datatxt, 8, true, true, [0.5, 1, 10, 50, 100, 500])
+oc_average_reps_txt(datatxtnoint, 8, true, true)

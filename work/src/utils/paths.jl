@@ -2,7 +2,7 @@
 # paths.jl
 # 
 # Blake Danziger
-# 1D Active Solids
+# 1D Active Matter Sim
 # MSc Theoretical Physics Dissertation (2025)
 # 
 # File containing helper methods to get absolute paths from relative paths on generic device
@@ -11,13 +11,13 @@
 
 
 const ROOT_DIR_ABS_PATH1::String = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev"
-const ROOT_DIR_ABS_PATH2::String = "/home/s2696227/Documents/Dissertation/1DActiveSolids"
+const ROOT_DIR_ABS_PATH2::String = "/home/s2696227/Documents/Dissertation/1DActiveMatterSim"
 
 const ROOT_DIRNAME_BD = "Dev"
-const ROOT_DIRNAME = "1DActiveSolids"
+const ROOT_DIRNAME = "1DActiveMatterSim"
 
 """
-Gets the absolute path of the root of the 1DActiveSolids Repository on your machine.
+Gets the absolute path of the root of the 1DActiveMatterSim Repository on your machine.
 """
 function getrootabspath()::String
     currdir::String = @__DIR__
@@ -31,7 +31,7 @@ end
 
 
 """
-Gets the absolute path on your machine to a file given as a relative path to the root directory `1DActiveSolids`
+Gets the absolute path on your machine to a file given as a relative path to the root directory `1DActiveMatterSim`
 """
 function relpath2abspath(path::String)::String
     return joinpath(getrootabspath(), path)

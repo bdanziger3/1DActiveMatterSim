@@ -1,7 +1,7 @@
 ########################
 # polarorder_driver.jl
 # Blake Danziger
-# 1D Active Solids
+# 1D Active Matter Sim
 # MSc Theoretical Physics Dissertation (2025)
 
 # File containing driver code to run polar order and mean spin as a function of time analysis on various data files and plot results
@@ -883,9 +883,40 @@ function po_saveddata_plot(txtfilename::String, minindex::Int64=1, maxindex::Int
     end
 end
 
+function po_avg_sweep_txt(txtfilename::String, settletime::Real, saveplot::Bool=false, show::Bool=true)
+    # load data
+    datamatrix, sweeptype, simparamsout, legendvalues = ms_saveddata_load(txtfilename)
+
+    # handle settletime
+    settleindex = Int64(round(settletime / datamatrix[1,2])) + 1
+
+    # average over cases with same sweep value
+    # find the unique sweep values
+    sweepvaluecounts = countmap(legendvalues)
+    uniquesweepvalues = sort(collect(keys(sweepvaluecounts)))
+    nvalues = length(uniquesweepvalues)
+
+    indivpo = [[] for _=1:nvalues]
+
+    averagedpo::Array{Float64} = zeros(nvalues)
+
+    for (i, val) in enumerate(legendvalues)
+        legendvalue_uniqueindex = findfirst(uniquesweepvalues .== val)
+        meanpo = mean(abs.(datamatrix[i+1, settleindex:end]))
+        averagedpo[legendvalue_uniqueindex] += (meanpo ./ sweepvaluecounts[val])
+        
+        push!(indivpo[legendvalue_uniqueindex], meanpo) 
+    end
+
+
+    plt.plot(uniquesweepvalues, averagedpo, "-o")
+    # plt.xscale("log")
+    # plt.yscale("log")
+    plt.show()
+end
+
 
 function ms_plot_logrevtimes(txtfilename::String, settletime::Real=100, saveplot::Bool=false, show::Bool=true)
-    
     datamatrix, sweeptype, simparamsout, legendvalues = ms_saveddata_load(txtfilename)
     
     revtimes2, revtimes = getfftreversaltimes(datamatrix, settletime)
@@ -993,13 +1024,15 @@ end
 # ms_saveddata_plot_individual(datatxt, 450, 500, true, false)
 # ms_saveddata_plot_individual_subplots(datatxt, 450, 500, true, true)
 
-filetxt1 = fixpath("work/analysis/Mean Spin/Align Simple/Aug15_rsweep/Aug15_rsweep_full/ms_sweep_plot.txt")
-filetxt2 = fixpath("work/analysis/Mean Spin/Align Simple/small_interaction2_3-8/mean_spin_sweep_plot.txt")
+# filetxt1 = fixpath("work/analysis/Mean Spin/Align Simple/Aug15_rsweep/Aug15_rsweep_full/ms_sweep_plot.txt")
+# filetxt2 = fixpath("work/analysis/Mean Spin/Align Simple/small_interaction2_3-8/mean_spin_sweep_plot.txt")
 
 
-d1x, d1y = ms_plot_logrevtimes(filetxt1, 100, true, true)
-d2x, d2y = ms_plot_logrevtimes(filetxt2, 100, true, true)
+# d1x, d1y = ms_plot_logrevtimes(filetxt1, 100, true, true)
+# d2x, d2y = ms_plot_logrevtimes(filetxt2, 100, true, true)
 
+f1 = fixpath("work/analysis/Mean Spin/Align Simple/Aug15_rsweep/Aug15_rsweep_full/ms_sweep_plot.txt")
+po_avg_sweep_txt(f1, 100)
 
 # marker = "s"
 # plt.plot(d1x, d1y, marker, markeredgecolor="firebrick",  markerfacecolor="none", markersize=5)

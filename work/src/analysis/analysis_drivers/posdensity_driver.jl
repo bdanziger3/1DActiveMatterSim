@@ -1,7 +1,7 @@
 ########################
 # posdensity_driver.jl
 # Blake Danziger
-# 1D Active Solids
+# 1D Active Matter Sim
 # MSc Theoretical Physics Dissertation (2025)
 
 # File containing driver code to run position density function on variou data files

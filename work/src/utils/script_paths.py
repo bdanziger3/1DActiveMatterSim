@@ -2,7 +2,7 @@
 # script_paths.py
 # 
 # Blake Danziger
-# 1D Active Solids
+# 1D Active Matter Sim
 # MSc Theoretical Physics Dissertation (2025)
 # 
 # File containing constants of paths of helpful script files.

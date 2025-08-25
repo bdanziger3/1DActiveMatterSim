@@ -1,4 +1,4 @@
-# Dissertaion Meeting Notes: Active Solids
+# Dissertaion Meeting Notes: Active Matter
 
 ## Blake Denziger
 ### Patrick Piezonka and Till Welker

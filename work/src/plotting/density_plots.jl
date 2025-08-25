@@ -1,7 +1,7 @@
 ########################
 # density_plots.jl
 # Blake Danziger
-# 1D Active Solids
+# 1D Active Matter Sim
 # MSc Theoretical Physics Dissertation (2025)
 
 # Functions to plot a density histogram of simulation data

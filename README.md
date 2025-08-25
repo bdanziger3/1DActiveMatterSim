@@ -1,4 +1,4 @@
-1D Active Solids Simulation and Analysis Repo
+1D Active Matter Simulation and Analysis Repo
 
 ## Blake Danziger
 ## MSc Theoretical Physics Dissertation 2025
@@ -7,26 +7,15 @@
 
 
 
-
-Simulating Active Solids and searching for order. 
-
+Simulating Active Particles with Immediate-Neighbour interactions and searching for order. 
 
 
 
 
 
+### Code to install packages
 
-
-# Packages required
-
-- JSON
-
-
-
-Code to install packages:
-
-```julia
-using Pkg
-Pkg.add("JSON")
-
+Run the install_dependencies.sh script from the root dir
+```bash
+sh /work/src/install/install_dependencies.sh
 ```

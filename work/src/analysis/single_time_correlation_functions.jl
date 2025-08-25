@@ -2,7 +2,7 @@
 """
 single_time_correlation_functions.jl
 Blake Danziger
-1D Active Solids
+1D Active Matter Sim
 MSc Theoretical Physics Dissertation (2025)
 
 File containing correlation functions and helper functions

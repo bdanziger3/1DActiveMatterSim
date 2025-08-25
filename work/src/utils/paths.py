@@ -2,7 +2,7 @@
 # paths.py
 # 
 # Blake Danziger
-# 1D Active Solids
+# 1D Active Matter Sim
 # MSc Theoretical Physics Dissertation (2025)
 # 
 # File containing helper methods to get absolute paths from relative paths on generic device
@@ -12,15 +12,15 @@ import os
 import sys
 
 ROOT_DIR_ABS_PATH1 = "/Users/blakedanziger/Documents/Grad/MSc Theoretical Physics/Dissertation/Dev"
-ROOT_DIR_ABS_PATH2 = "/home/s2696227/Documents/Dissertation/1DActiveSolids"
+ROOT_DIR_ABS_PATH2 = "/home/s2696227/Documents/Dissertation/1DActiveMatterSim"
 
 ROOT_DIRNAME_BD = "Dev"
-ROOT_DIRNAME = "1DActiveSolids"
+ROOT_DIRNAME = "1DActiveMatterSim"
 
 
 def get_root_abspath() -> str:
     """
-    Gets the absolute path of the root of the 1DActiveSolids Repository on your machine.
+    Gets the absolute path of the root of the 1DActiveMatterSim Repository on your machine.
     """
     currdir = os.getcwd()
 
@@ -33,7 +33,7 @@ def get_root_abspath() -> str:
 
 def relpath2abspath(path:str) -> str:
     """
-    Gets the absolute path on your machine to a file given as a relative path to the root directory `1DActiveSolids`
+    Gets the absolute path on your machine to a file given as a relative path to the root directory `1DActiveMatterSim`
     """
     return os.path.join(get_root_abspath(), path)
 

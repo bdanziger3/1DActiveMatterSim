@@ -1,7 +1,7 @@
 ########################
 # animation_helpers.py
 # Blake Danziger
-# 1D Active Solids
+# 1D Active Matter Sim
 # MSc Theoretical Physics Dissertation (2025)
 
 # Helper Functions for plot animation code

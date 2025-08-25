@@ -1,7 +1,7 @@
 ########################
 # 1D_density_paths.jl
 # Blake Danziger
-# 1D Active Solids
+# 1D Active Matter Sim
 # MSc Theoretical Physics Dissertation (2025)
 
 # File containing code to plot simulation data as 1D paths
@@ -152,7 +152,7 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
     # clear plot
     plt.clf()
     plt.xlim([-simparams.boxwidth / 2, simparams.boxwidth / 2])
-    # plt.xlim([-25, 25])
+    plt.xlim([-25, -15])
     plt.ylim([mintime, maxtime])
     
     @showprogress 1 "plotting paths..." for p in 1:simparams.numparticles
@@ -169,10 +169,11 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
     numhighlightpaths = length(highlight)
     for p_i in 1:numhighlightpaths
         if highlight[p_i] != 0
-            maxscrens = round(maximum(unwrappedpos[:,p_i]) / simparams.boxwidth)
-            minscrens = round(minimum(unwrappedpos[:,p_i]) / simparams.boxwidth)
+            p = highlight[p_i]
+            maxscrens = round(maximum(unwrappedpos[:,p]) / simparams.boxwidth)
+            minscrens = round(minimum(unwrappedpos[:,p]) / simparams.boxwidth)
             for s in collect(minscrens:maxscrens)
-                plt.plot(unwrappedpos[minindex:maxindex ,p_i] .- (s * simparams.boxwidth), savetimes[minindex:maxindex], c=highlightcolors[Int64(mod(p_i, length(highlightcolors))) + 1], alpha=1.0, linewidth=1)
+                plt.plot(unwrappedpos[minindex:maxindex ,p] .- (s * simparams.boxwidth), savetimes[minindex:maxindex], c=highlightcolors[Int64(mod(p_i, length(highlightcolors))) + 1], alpha=1.0, linewidth=1)
             end
         end
     end
@@ -194,7 +195,8 @@ function plot_1d_path_lines(filename::String, saveplot::Bool=false, show::Bool=t
     # xticks = Int64.(round.(collect(minindex / simparams.snapshot_dt:5:maxindex / simparams.snapshot_dt)))
     # plt.xticks([-50, -25, 0, 25, 50], [0, 25, 50, 75, 100])
     # plt.xticks([-10, -5, 0, 5, 10], [0, 5, 10, 15, 20])
-    plt.xticks([-25, -15, -5, 5, 15, 25], [0, 10, 20, 30, 40, 50])
+    # plt.xticks([-25, -15, -5, 5, 15, 25], [0, 10, 20, 30, 40, 50])
+    plt.xticks([-25, -15], [0, 10])
     # plt.xticks([-10, -5, 0, 5, 10], [0, 5, 10, 15, 20])
     # plt.yticks([80, 85, 90, 95, 100])
     plt.yticks(collect(mintime:5:maxtime))
@@ -244,8 +246,14 @@ end
 # plot_1d_path_lines(path, true, false, 480, -1, [0], false)
 # path = fixpath("work/data/19-8/N2000-B20.0-nointeraction-0-T100.txt")
 
-for i in [2, 5, 10, 20, 50, 100]
-    path = fixpath("work/data/sweeps/turnaway/interactionsweep/N500-B50/interactionsweep/N500-B50.0-turnaway-$i.0_rep5.txt")
-    plot_1d_path_lines(path, true, false, 480, 500, [1, 70, 400], false, 1, .1)
+# for i in [2, 5, 10, 20, 50, 100]
+#     path = fixpath("work/data/sweeps/turnaway/interactionsweep/N500-B50/interactionsweep/N500-B50.0-turnaway-$i.0_rep5.txt")
+#     plot_1d_path_lines(path, true, false, 480, 500, [1, 70, 400], false, .1, 1)
+# end
+for i in [2]
+    for j in 1:5
+        path = fixpath("work/data/sweeps/turnaway/interactionsweep/N500-B50/interactionsweep/N500-B50.0-turnaway-$i.0_rep5.txt")
+        plot_1d_path_lines(path, true, false, 480, 500, (20 * j) .+ [10,11,12,13,14,15,16,17,18,19,20], false, .8, .4)
+    end
 end
 # plot_1d_path_lines(path, true, false, 480, 500, [1, 5, 70], false, 0.2, .1)

@@ -1,7 +1,7 @@
 ########################
 # datafits.py
 # Blake Danziger
-# 1D Active Solids
+# 1D Active Matter Sim
 # MSc Theoretical Physics Dissertation (2025)
 
 # File containing functions to fit analysis data to curves

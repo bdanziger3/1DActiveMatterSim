@@ -1,7 +1,7 @@
 ########################
 # analysis_functions.jl
 # Blake Danziger
-# 1D Active Solids
+# 1D Active Matter Sim
 # MSc Theoretical Physics Dissertation (2025)
 
 # File containing functions that compute scientific functions on analysis data from correlation functions.
@@ -103,6 +103,14 @@ function getfftreversaltime(podata::Matrix{<:Real}, snapshot_dt::Float64=0.01)::
     return reversaltime_avg
 end
 
+"""
+
+returns `revtimes` and `revtimes2`
+
+`revtimes`: list of reversal times calculated using the absolute value of the FFT frequerncy amplitudes
+
+`revtimes2`: list of reversal times calculated using the absolute value squaered of the FFT frequerncy amplitudes (dominant frequency, power related)
+"""
 function getfftreversaltimes(msdata::Matrix{<:Real}, settletime::Real=100)
     dt = msdata[1, 2] - msdata[1, 1]
     settledindex = Int64(round(settletime / dt))

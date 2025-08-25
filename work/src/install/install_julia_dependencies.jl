@@ -2,13 +2,13 @@
 # install_julia_dependencies.jl
 # 
 # Blake Danziger
-# 1D Active Solids
+# 1D Active Matter Sim
 # MSc Theoretical Physics Dissertation (2025)
 # 
 # Finds all Julia packages listed in `dependeencies.md` and installs them.
 ########################
 
-ENV["PYTHON"] = "/home/s2696227/python310/bin/python"
+# ENV["PYTHON"] = "/home/s2696227/python310/bin/python"
 using Pkg
 
 DEPENDENCIES_FILENAME = "dependencies.md"

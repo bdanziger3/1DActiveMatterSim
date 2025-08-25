@@ -1,7 +1,7 @@
 ########################
 # serialization_driver.jl
 # Blake Danziger
-# 1D Active Solids
+# 1D Active Matter Sim
 # MSc Theoretical Physics Dissertation (2025)
 
 # File containing driver code to condense data file segments and serialize/deserialize data files
